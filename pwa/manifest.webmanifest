@@ -1,0 +1,16 @@
+{
+  "name": "МеталлРасчёт",
+  "short_name": "МеталлРасчёт",
+  "description": "Калькулятор металлообработки: лазер, раскрой, гибка, сварка, ЧПУ, сметы и КП",
+  "id": "https://vladislavgildenberg7774-create.github.io/metallraschet/",
+  "start_url": "https://vladislavgildenberg7774-create.github.io/metallraschet/",
+  "scope": "https://vladislavgildenberg7774-create.github.io/metallraschet/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#f97316",
+  "lang": "ru",
+  "icons": [
+    { "src": "https://vladislavgildenberg7774-create.github.io/metallraschet/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "https://vladislavgildenberg7774-create.github.io/metallraschet/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

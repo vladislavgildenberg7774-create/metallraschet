@@ -1,0 +1,1973 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>МеталлРасчёт — лазерная резка</title>
+  <!-- Установка сайта как приложения (значок «Установить» в адресной строке Edge/Chrome/Яндекс) -->
+  <link rel="manifest" href="./assets/manifest-BVs7tvaW.webmanifest">
+  <link rel="icon" type="image/png" href="./assets/icon-192-BO0Zujre.png">
+  <meta name="theme-color" content="#f97316">
+
+  <!-- Заставка на время загрузки (без внешних файлов — показывается мгновенно) -->
+  <style>
+    html.booting { background: #0f172a; }
+    #bootSplash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: #0f172a; color: #e2e8f0; font-family: "Segoe UI", system-ui, sans-serif; transition: opacity .25s; }
+    #bootSplash .bs-logo { width: 64px; height: 64px; border-radius: 16px; background: #f97316; color: #fff; font-size: 34px;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+    #bootSplash .bs-title { font-size: 20px; font-weight: 600; }
+    #bootSplash .bs-sub { color: #94a3b8; font-size: 14px; margin-top: 4px; }
+    #bootSplash .bs-spin { width: 26px; height: 26px; border: 3px solid #334155; border-top-color: #f97316; border-radius: 50%;
+      margin-top: 18px; animation: bsSpin .8s linear infinite; }
+    @keyframes bsSpin { to { transform: rotate(360deg); } }
+    /* Onest (SIL OFL, fonts/OFL.txt) — своя копия, без внешних CDN */
+    @font-face { font-family: 'Onest'; font-style: normal; font-display: swap; font-weight: 100 900;
+      src: url('./assets/onest-cyrillic-wght-normal-DayYxulF.woff2') format('woff2');
+      unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+    @font-face { font-family: 'Onest'; font-style: normal; font-display: swap; font-weight: 100 900;
+      src: url('./assets/onest-latin-wght-normal-Dun_Rd-l.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  </style>
+  <script>document.documentElement.classList.add('booting');</script>
+
+  <!-- three.js для конвертера DXF → 3D (локальная копия, см. vendor/) -->
+
+  <link rel="stylesheet" href="./assets/style.5a00731037.css">
+  <link rel="stylesheet" href="./assets/theme.6f5d2c500f.css">
+  <script src="./assets/theme.af2308d8ce.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/three.module.js",
+        "three/addons/": "./vendor/three/addons/"
+      }
+    }
+  </script>
+    <script type="module" crossorigin src="./assets/main-BwPGRtGW.js"></script>
+  </head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+  <div id="bootSplash"><div class="bs-logo">✦</div><div class="bs-title">МеталлРасчёт</div><div class="bs-sub">Загрузка…</div><div class="bs-spin"></div></div>
+  <script>setTimeout(function () { var s = document.getElementById('bootSplash'); if (s) s.remove(); document.documentElement.classList.remove('booting'); }, 30000);</script>
+
+  <div class="app-shell">
+  <!-- Боковая навигация: вкладки по технологиям. Кнопки с data-tab переключает app.js (switchTab), порядок и группы — только вид -->
+  <nav id="mainNav" class="main-nav" aria-label="Разделы">
+    <div class="nav-brand">
+      <span class="nav-logo" aria-hidden="true">✦</span>
+      <span class="nav-brand-text">
+        <span class="nav-brand-name">МеталлРасчёт</span>
+        <span class="nav-brand-sub">металлообработка</span>
+      </span>
+      <button type="button" class="nav-close" data-nav-close aria-label="Закрыть меню">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="nav-scroll">
+      <div class="nav-group">
+        <p class="nav-group-title">Резка</p>
+        <button type="button" data-tab="laser" class="tab-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/></svg><span>Лазер</span></button>
+        <button type="button" data-tab="nest" class="tab-btn" title="Раскладка деталей на лист, КИМ, DXF листа"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg><span>Раскрой листа</span></button>
+        <button type="button" data-tab="tube" class="tab-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14a8 3 0 0 0 16 0V5"/></svg><span>Труборез</span></button>
+        <button type="button" data-tab="tnest" class="tab-btn" title="Оптимизатор хлыстов: раскрой трубы и профиля"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2M11.5 9.5l2-2M8.5 6.5l2-2M17.5 15.5l2-2"/></svg><span>Раскрой трубы</span></button>
+        <button type="button" data-tab="saw" class="tab-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18h18M3 14l2-2 2 2 2-2 2 2 2-2 2 2 2-2 2 2 2-2"/></svg><span>Пила</span></button>
+      </div>
+      <div class="nav-group">
+        <p class="nav-group-title">Обработка</p>
+        <button type="button" data-tab="bend" class="tab-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11a7 7 0 0 1 7-7h9"/></svg><span>Гибка</span></button>
+        <button type="button" data-tab="weld" class="tab-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg><span>Сварка</span></button>
+        <button type="button" data-tab="cnc" class="tab-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v5M8 7h8l-1 9H9z"/><path d="M12 16v3M7 22h10"/></svg><span>ЧПУ: токарка и фрезеровка</span></button>
+      </div>
+      <div class="nav-group">
+        <p class="nav-group-title">Покрытие</p>
+        <button type="button" data-tab="coat" class="tab-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>Цинкование</span></button>
+        <button type="button" data-tab="paint" class="tab-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg><span>Покраска</span></button>
+      </div>
+      <div class="nav-group">
+        <p class="nav-group-title">Сборка</p>
+        <button type="button" data-tab="hw" class="tab-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/><circle cx="12" cy="12" r="3"/></svg><span>Метизы</span></button>
+        <button type="button" data-tab="node" class="tab-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></svg><span>Узел (сборка)</span></button>
+      </div>
+      <div class="nav-group">
+        <p class="nav-group-title">Инструменты</p>
+        <button type="button" data-tab="tpl" class="tab-btn" title="Типовые детали без DXF: фланец, пластина, косынка, шайба"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 5.5v.01M12 18.5v.01M5.5 12h.01M18.5 12h.01"/></svg><span>Шаблоны деталей</span></button>
+        <button id="photoBtn" type="button" data-feature="photo" class="tab-btn" title="Сфотографируйте бумажный чертёж: ИИ прочитает размеры и построит DXF"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg><span>Чертёж с фото</span></button>
+        <button type="button" data-tab="conv" class="tab-btn" title="Конвертер DXF в 3D"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg><span>DXF → 3D</span></button>
+      </div>
+    </div>
+  </nav>
+  <div class="nav-backdrop" data-nav-close aria-hidden="true"></div>
+
+  <div class="app-main">
+  <!-- Шапка -->
+  <header class="app-header">
+    <div class="app-header-row">
+      <button type="button" class="hdr-icon-btn nav-open" data-nav-open aria-label="Разделы">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <span class="hdr-brand" aria-hidden="true"><span class="nav-logo">✦</span></span>
+      <h1 class="sr-only">МеталлРасчёт</h1>
+      <button id="historyBtn" type="button" class="hidden btn btn-secondary btn-history" title="Все сохранённые расчёты и сметы">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        <span class="max-sm:hidden">Мои расчёты</span>
+      </button>
+      <div class="ml-auto flex items-center gap-2">
+        <div id="userBox" class="hidden flex items-center gap-2 text-sm">
+          <button id="sendBtn" data-feature="machines" type="button" class="btn btn-primary" title="Отправить чертежи на станок (лазер)">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-11 11M22 2l-7 20-4-9-9-4z"/></svg>
+            <span class="max-sm:hidden">На станок</span>
+          </button>
+          <button id="clientsBtn" type="button" class="btn btn-ghost" title="База клиентов: реквизиты и персональные скидки">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="max-md:hidden">Клиенты</span>
+          </button>
+          <button type="button" data-theme-btn class="hdr-icon-btn" title="Тёмная тема"></button>
+          <details class="user-menu" data-menu>
+            <summary class="user-menu-btn" title="Аккаунт, фирма, тариф">
+              <span class="user-avatar" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+              </span>
+              <span id="userName" class="font-medium max-md:hidden"></span>
+              <svg class="ico ico-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="user-menu-panel">
+              <div class="user-menu-meta">
+                <span id="orgBadge" class="hidden menu-chip" title="Ваша фирма"></span>
+                <button id="planBadge" type="button" class="hidden menu-chip menu-chip-plan" title="Тариф вашей фирмы. Нажмите, чтобы посмотреть все тарифы"></button>
+                <span id="cloudBadge" class="menu-chip menu-chip-muted"></span>
+              </div>
+              <button id="companyBtn" type="button" class="menu-item" title="Реквизиты компании, логотип, печать и подпись для КП">
+                <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/></svg>
+                Реквизиты и печать для КП
+              </button>
+              <button id="adminBtn" type="button" class="hidden menu-item" title="Владелец сервиса: фирмы-клиенты, логины, оплата, компьютеры">
+                <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7z"/><path d="M5 20h14"/></svg>
+                Админ-панель
+              </button>
+              <button id="installBtn" type="button" class="menu-item" title="Установить МеталлРасчёт как приложение: iPhone, Android, Windows">
+                <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                Установить как приложение
+              </button>
+              <div class="menu-sep"></div>
+              <button id="logoutBtn" type="button" class="menu-item">
+                <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                Выйти
+              </button>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Панель «Мои расчёты» -->
+  <div id="historyBackdrop" class="hidden fixed inset-0 bg-slate-900/40 z-40"></div>
+  <aside id="historyDrawer" class="history-drawer fixed top-0 left-0 h-full w-full max-w-md bg-white z-50 shadow-2xl flex flex-col">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+      <h2 class="font-semibold text-lg">Мои расчёты <span id="historyCount" class="text-slate-400 font-normal"></span></h2>
+      <button aria-label="Закрыть" id="historyClose" type="button" class="text-slate-400 hover:text-slate-700 text-xl px-2" title="Закрыть">✕</button>
+    </div>
+    <div class="px-5 py-3 space-y-2 border-b border-slate-100">
+      <button id="historyNewBtn" type="button" class="w-full rounded-lg bg-orange-500 text-white px-4 py-2 text-sm font-medium hover:bg-orange-600">
+        + Новый расчёт
+      </button>
+      <input id="historySearch" type="search" placeholder="Поиск по названию или файлу"
+        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+      <div id="historyFilters" class="flex flex-wrap gap-1"></div>
+    </div>
+    <p id="historyLoading" class="hidden text-xs text-slate-400 text-center pt-2">Обновляю список…</p>
+    <div id="historyList" class="flex-1 overflow-y-auto px-3 py-3 space-y-2"></div>
+    <div class="px-5 py-3 border-t border-slate-100 space-y-2">
+      <div class="grid grid-cols-2 gap-2">
+        <button id="archiveDownloadBtn" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50" title="Все расчёты, прайс и реквизиты в одном файле">Скачать архив</button>
+        <button id="archiveRestoreBtn" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50" title="Загрузить расчёты из файла архива">Восстановить из архива</button>
+      </div>
+      <input id="archiveFileInput" type="file" accept=".json,application/json" class="hidden">
+      <p id="historyNote" class="text-xs text-slate-400"></p>
+    </div>
+  </aside>
+
+  <!-- Выбор сохранённого расчёта для узла -->
+  <div id="pickCalcModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div id="pickCalcBackdrop" class="absolute inset-0 bg-slate-900/40"></div>
+    <div class="relative w-full max-w-lg max-h-[80vh] bg-white rounded-2xl shadow-2xl flex flex-col">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+        <h2 class="font-semibold">Добавить в узел из моих расчётов</h2>
+        <button aria-label="Закрыть" id="pickCalcClose" type="button" class="text-slate-400 hover:text-slate-700 text-xl px-2" title="Закрыть">✕</button>
+      </div>
+      <div class="px-5 py-3 border-b border-slate-100">
+        <input id="pickCalcSearch" type="search" placeholder="Поиск по названию или файлу"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
+      </div>
+      <div id="pickCalcList" class="flex-1 overflow-y-auto px-3 py-3 space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- Реквизиты компании и настройки КП -->
+  <div id="companyModal" class="hidden fixed inset-0 z-[55] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" onclick="closeCompanyModal()"></div>
+    <div class="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="font-semibold text-lg">Реквизиты для КП</h2>
+          <p class="text-xs text-slate-500">Можно завести несколько фирм и при выпуске КП выбрать, от какой. В облаке реквизиты общие для всех сотрудников.</p>
+        </div>
+        <button aria-label="Закрыть" id="companyClose" type="button" class="text-slate-400 hover:text-slate-700 text-xl px-2">✕</button>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 border border-slate-200 p-2.5">
+        <span class="text-xs text-slate-500">Компания:</span>
+        <select id="companySelect" class="min-w-[12rem] flex-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm bg-white"></select>
+        <button id="companyAddBtn" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm hover:bg-slate-100">＋ Добавить компанию</button>
+        <button id="companyDelBtn" type="button" class="rounded-lg border border-rose-200 bg-white text-rose-600 px-3 py-1.5 text-sm hover:bg-rose-50">Удалить</button>
+      </div>
+      <div id="companyFields" class="grid gap-3 sm:grid-cols-2"></div>
+      <div class="grid gap-3 sm:grid-cols-3">
+          <div class="rounded-lg border border-slate-200 p-2 space-y-1">
+            <div class="text-xs font-medium">Логотип</div>
+            <div id="companyImg_logo" class="h-16 flex items-center justify-center bg-slate-50 rounded"></div>
+            <div class="flex gap-1">
+              <label data-feature="whitelabel" class="flex-1 text-center rounded border border-slate-300 px-2 py-1 text-xs cursor-pointer hover:bg-slate-50">Загрузить<input id="companyFile_logo" type="file" accept="image/png,image/jpeg,image/webp" class="hidden"></label>
+              <button aria-label="Убрать" id="companyDel_logo" type="button" class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50" title="Убрать">✕</button>
+            </div>
+            <div class="text-[10px] text-slate-400 leading-tight">в шапке КП</div>
+          </div>
+          <div class="rounded-lg border border-slate-200 p-2 space-y-1">
+            <div class="text-xs font-medium">Печать</div>
+            <div id="companyImg_stamp" class="h-16 flex items-center justify-center bg-slate-50 rounded"></div>
+            <div class="flex gap-1">
+              <label data-feature="whitelabel" class="flex-1 text-center rounded border border-slate-300 px-2 py-1 text-xs cursor-pointer hover:bg-slate-50">Загрузить<input id="companyFile_stamp" type="file" accept="image/png,image/jpeg,image/webp" class="hidden"></label>
+              <button aria-label="Убрать" id="companyDel_stamp" type="button" class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50" title="Убрать">✕</button>
+            </div>
+            <div class="text-[10px] text-slate-400 leading-tight">PNG с прозрачным фоном, ляжет поверх подписи</div>
+          </div>
+          <div class="rounded-lg border border-slate-200 p-2 space-y-1">
+            <div class="text-xs font-medium">Подпись</div>
+            <div id="companyImg_signature" class="h-16 flex items-center justify-center bg-slate-50 rounded"></div>
+            <div class="flex gap-1">
+              <label data-feature="whitelabel" class="flex-1 text-center rounded border border-slate-300 px-2 py-1 text-xs cursor-pointer hover:bg-slate-50">Загрузить<input id="companyFile_signature" type="file" accept="image/png,image/jpeg,image/webp" class="hidden"></label>
+              <button aria-label="Убрать" id="companyDel_signature" type="button" class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50" title="Убрать">✕</button>
+            </div>
+            <div class="text-[10px] text-slate-400 leading-tight">PNG с прозрачным фоном</div>
+          </div>
+      </div>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <label class="block">
+          <span class="text-xs text-slate-500">Срок действия КП, дней</span>
+          <input id="companyValidity" type="number" min="1" step="1" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm">
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="text-xs text-slate-500">Вступительный текст</span>
+          <input id="companyIntro" type="text" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm">
+        </label>
+      </div>
+      <label class="block">
+        <span class="text-xs text-slate-500">Условия по умолчанию (сроки, оплата, доставка)</span>
+        <textarea id="companyTerms" rows="3" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></textarea>
+      </label>
+      <div class="flex justify-end">
+        <button id="companySave" type="button" class="rounded-lg bg-sky-600 text-white px-5 py-2 font-medium hover:bg-sky-700">Сохранить реквизиты</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Выпуск PDF-КП -->
+  <div id="kpModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" onclick="document.getElementById('kpModal').classList.add('hidden')"></div>
+    <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold text-lg">Коммерческое предложение</h2>
+        <button aria-label="Закрыть" id="kpClose" type="button" class="text-slate-400 hover:text-slate-700 text-xl px-2">✕</button>
+      </div>
+      <label class="block">
+        <span class="text-xs text-slate-500">От какой компании</span>
+        <select id="kpCompany" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm bg-white"></select>
+      </label>
+      <p id="kpCompanyHint" class="hidden text-sm rounded-lg bg-amber-50 text-amber-800 px-3 py-2">У этой компании не заполнены реквизиты. <button id="kpCompanyLink" type="button" class="underline font-medium">заполнить</button>.</p>
+      <label class="block">
+        <span class="text-xs text-slate-500">Клиент из базы (скидка и реквизиты подставятся)</span>
+        <select id="kpClient" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm bg-white"></select>
+        <span id="kpClientReq" class="block whitespace-pre-line text-[11px] text-slate-500 mt-0.5"></span>
+      </label>
+      <label class="block">
+        <span class="text-xs text-slate-500">Заказчик (кому)</span>
+        <input id="kpCustomer" type="text" placeholder="например: ООО «Ромашка», Иванов И.И." class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm">
+      </label>
+      <div class="grid grid-cols-3 gap-3">
+        <label class="block"><span class="text-xs text-slate-500">Номер КП</span>
+          <input id="kpNumber" type="text" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+        <label class="block"><span class="text-xs text-slate-500">Дата</span>
+          <input id="kpDate" type="date" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+        <label class="block"><span class="text-xs text-slate-500">Действует, дней</span>
+          <input id="kpValidity" type="number" min="1" step="1" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+      </div>
+      <label class="block">
+        <span class="text-xs text-slate-500">Условия</span>
+        <textarea id="kpTerms" rows="3" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></textarea>
+      </label>
+      <p class="text-xs text-slate-400">В КП попадёт клиентская таблица: позиции без внутренних параметров, итоги и НДС по текущим настройкам.</p>
+      <div class="flex justify-end">
+        <button id="kpMakeBtn" type="button" class="rounded-lg bg-rose-600 text-white px-5 py-2 font-medium hover:bg-rose-700 disabled:opacity-50">Скачать PDF</button>
+      </div>
+      <div id="kpShareLinks" class="border-t border-slate-200 pt-3 space-y-2">
+        <div class="text-sm font-medium">Отправить клиенту ссылкой</div>
+        <label class="block"><span class="text-xs text-slate-500">Телефон клиента для WhatsApp (подставится из базы клиентов)</span>
+          <input id="kpPhone" type="tel" placeholder="+7 900 123-45-67" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+        <div class="flex flex-wrap gap-2">
+          <button id="kpWaBtn" data-feature="share" type="button" class="rounded-lg bg-[#25D366] text-white px-4 py-2 text-sm font-medium hover:brightness-95 disabled:opacity-50">WhatsApp</button>
+          <button id="kpTgBtn" data-feature="share" type="button" class="rounded-lg bg-[#229ED9] text-white px-4 py-2 text-sm font-medium hover:brightness-95 disabled:opacity-50">Telegram</button>
+          <button id="kpMaxBtn" data-feature="share" type="button" class="rounded-lg bg-gradient-to-r from-[#2E6BFF] to-[#8A3FFC] text-white px-4 py-2 text-sm font-medium hover:brightness-95 disabled:opacity-50" title="Откроется MAX с готовым сообщением, выберите чат клиента">MAX</button>
+          <button id="kpLinkBtn" data-feature="share" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 disabled:opacity-50">Скопировать ссылку</button>
+        </div>
+        <p class="text-xs text-slate-400">PDF загрузится в облако, клиенту уйдёт сообщение с суммой и ссылкой. Ссылка работает 30 дней, открывается без входа в программу. В MAX и Telegram чат клиента выбираете сами. Расчёт получит статус «КП отправлено».</p>
+      </div>
+      <div class="flex justify-end">
+        <button id="kpShareFileBtn" type="button" class="hidden text-sm text-sky-700 hover:underline">Поделиться PDF-файлом…</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Отправка чертежей на станки -->
+  <div id="sendModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" onclick="document.getElementById('sendModal').classList.add('hidden')"></div>
+    <div class="relative w-full max-w-4xl max-h-[92vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+        <div>
+          <h2 class="font-semibold text-lg">Отправить чертёж на станок</h2>
+          <p class="text-xs text-slate-500">Файл уходит в облако, агент на компьютере станка забирает его в папку за несколько секунд. Если станок выключен, файл придёт, когда его включат.</p>
+        </div>
+        <button aria-label="Закрыть" id="sendClose" type="button" class="text-slate-400 hover:text-slate-700 text-xl px-2">✕</button>
+      </div>
+      <div class="overflow-y-auto p-5 space-y-4">
+        <div id="sendSetupWarn" class="hidden rounded-lg bg-amber-50 border border-orange-300 px-3 py-2 text-sm text-amber-800">
+          В облаке ещё не включена отправка на станки: выполните в Supabase SQL из файла <b>supabase/machines.sql</b>.
+        </div>
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <span class="text-sm font-medium">1. Станок</span>
+            <button id="machinesSetupBtn" type="button" class="text-xs text-sky-700 hover:underline">Станки и установка агента</button>
+          </div>
+          <div id="sendMachines" class="grid gap-2 sm:grid-cols-3"></div>
+          <div id="machinesSetup" class="hidden mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2 text-sm">
+            <p class="text-xs text-slate-600">Названия станков можно поменять. «Установщик агента» скачивает файл для конкретного станка. Запустите его на компьютере этого лазера (один раз).</p>
+            <div class="flex flex-wrap items-center gap-3 text-xs">
+              <label class="flex items-center gap-1">Папка по умолчанию <input id="agentFolder" type="text" value="C:\Чертежи" class="w-40 rounded border border-slate-300 px-2 py-1 text-sm"></label>
+              <label class="flex items-center gap-1"><input id="agentSubfolders" type="checkbox" checked class="accent-orange-500"> раскладывать по подпапкам заказов</label>
+            </div>
+            <div id="machinesList" class="space-y-1.5"></div>
+            <button id="machineAddBtn" type="button" class="text-xs text-sky-700 hover:underline">＋ добавить станок</button>
+          </div>
+        </div>
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+            <span class="text-sm font-medium">2. Что отправить</span>
+            <label class="flex items-center gap-1 text-xs text-slate-600" title="Если чертёж исправлялся (двойные линии, разрывы, масштаб), отправить исправленный, а не исходный файл клиента">
+              <input id="sendClean" type="checkbox" checked class="accent-orange-500"> исправленные чертежи вместо исходных</label>
+          </div>
+          <div id="sendFiles" class="max-h-64 overflow-y-auto rounded-xl border border-slate-200"></div>
+          <button id="sendDiskBtn" type="button" class="mt-1.5 text-sm text-sky-700 hover:underline">＋ добавить файл с компьютера (DXF, NC, любой)</button>
+          <input id="sendDiskInput" type="file" multiple class="hidden">
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="block"><span class="text-sm font-medium">3. Подпапка заказа <span class="text-xs font-normal text-slate-400">внутри папки месяца, например «Ноябрь 2026\18.11»</span></span>
+            <span class="flex items-center gap-2 mt-0.5"><input id="sendUseSub" type="checkbox" checked class="accent-orange-500">
+            <input id="sendSubfolder" type="text" maxlength="100" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></span></label>
+          <label class="block"><span class="text-sm font-medium">Комментарий для оператора</span>
+            <input id="sendComment" type="text" maxlength="200" placeholder="например: срочно, резать первым" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+        </div>
+        <div class="flex justify-end">
+          <button id="sendGoBtn" type="button" class="rounded-lg bg-orange-500 text-white px-6 py-2 font-medium hover:bg-orange-600 disabled:opacity-50">Отправить</button>
+        </div>
+        <div>
+          <div class="text-sm font-medium mb-1">История отправок</div>
+          <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="calc-table text-sm w-full"><tbody id="sendHistory"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Админ-панель (видна только администратору) -->
+  <!-- Чертёж с фото (ИИ → DXF) -->
+  <div id="photoModal" class="hidden fixed inset-0 z-50 flex items-stretch sm:items-center justify-center sm:p-4">
+    <div class="absolute inset-0 bg-slate-900/40" data-photo-close></div>
+    <div class="relative w-full sm:max-w-4xl h-full sm:h-auto sm:max-h-[92vh] bg-white sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200">
+        <div class="min-w-0">
+          <h2 class="font-semibold text-lg">Чертёж с фото</h2>
+          <p class="text-xs text-slate-500">ИИ читает размеры на фото и строит точный DXF по числам. Перед добавлением сверьте наложение и размеры. <span id="photoQuota" class="text-slate-400"></span></p>
+        </div>
+        <button type="button" data-photo-close class="text-2xl leading-none text-slate-400 hover:text-slate-700 px-2" aria-label="Закрыть">×</button>
+      </div>
+      <div id="photoBody" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+      <input id="photoCam" type="file" accept="image/*" capture="environment" class="hidden">
+      <input id="photoPick" type="file" accept="image/jpeg,image/png,image/webp,image/*" multiple class="hidden">
+      <input id="photoAdd" type="file" accept="image/jpeg,image/png,image/webp,image/*" multiple class="hidden">
+      <input id="photoAddCam" type="file" accept="image/*" capture="environment" class="hidden">
+    </div>
+  </div>
+  <div id="adminModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" data-admin-close></div>
+    <div class="relative w-full max-w-5xl max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+        <div>
+          <h2 class="font-semibold text-lg">Владелец сервиса</h2>
+          <p class="text-xs text-slate-500">Фирмы-клиенты, их логины и компьютеры. Каждая фирма видит только свои расчёты, прайс, реквизиты и станки. Блокировка и окончание оплаты закрывают доступ сразу.</p>
+        </div>
+        <button aria-label="Закрыть" type="button" data-admin-close class="text-slate-400 hover:text-slate-700 text-xl px-2">✕</button>
+      </div>
+      <div class="flex gap-1 px-5 pt-3 text-sm">
+        <button type="button" data-admin-tab="orgs" class="admin-tab is-active">Фирмы</button>
+        <button type="button" data-admin-tab="users" class="admin-tab">Логины</button>
+        <button type="button" data-admin-tab="devices" class="admin-tab">Компьютеры</button>
+        <button type="button" data-admin-tab="requests" class="admin-tab">Заявки на тариф</button>
+        <button type="button" data-admin-tab="log" data-owner-only class="admin-tab">Журнал</button>
+        <button type="button" data-admin-tab="push" data-owner-only class="admin-tab">Уведомления</button>
+        <span class="flex-1"></span>
+        <button id="adminRefresh" type="button" class="text-xs text-sky-600 hover:underline">Обновить</button>
+      </div>
+      <div id="adminBody" class="overflow-auto px-5 py-4 min-h-[12rem]"></div>
+    </div>
+  </div>
+
+  <!-- База клиентов -->
+  <div id="clientsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" onclick="closeClientsModal()"></div>
+    <div class="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+        <div>
+          <h2 class="font-semibold text-lg">База клиентов</h2>
+          <p class="text-xs text-slate-500">Реквизиты и персональная скидка. Выберите клиента в смете: скидка применится, реквизиты попадут в КП. В облаке база общая для всех сотрудников.</p>
+        </div>
+        <button aria-label="Закрыть" id="clientsClose" type="button" class="text-slate-400 hover:text-slate-700 text-xl px-2">✕</button>
+      </div>
+      <div class="grid md:grid-cols-[16rem_1fr] min-h-0 flex-1">
+        <div class="border-r border-slate-200 flex flex-col min-h-0">
+          <div class="p-3 space-y-2 border-b border-slate-100">
+            <input id="clientsSearch" type="search" placeholder="Поиск: название, ИНН, телефон" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm">
+            <button id="clientNewBtn" type="button" class="w-full rounded-lg bg-sky-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-sky-700">＋ Новый клиент</button>
+          </div>
+          <div id="clientsList" class="overflow-y-auto p-2 space-y-1 max-h-[22rem] md:max-h-none flex-1"></div>
+        </div>
+        <div class="p-5 overflow-y-auto">
+          <p id="clientFormEmpty" class="text-sm text-slate-400">Выберите клиента слева или создайте нового.</p>
+          <div id="clientFormWrap" class="hidden space-y-4">
+            <div id="clientFields" class="grid gap-3 sm:grid-cols-2"></div>
+            <div class="flex flex-wrap justify-between gap-2">
+              <button id="clientDelBtn" type="button" class="rounded-lg border border-rose-200 text-rose-600 px-3 py-2 text-sm hover:bg-rose-50">Удалить</button>
+              <div class="flex flex-wrap gap-2">
+                <button id="clientUseBtn" type="button" class="rounded-lg border border-emerald-300 text-emerald-700 px-3 py-2 text-sm hover:bg-emerald-50">Выбрать для текущей сметы</button>
+                <button id="clientSaveBtn" type="button" class="rounded-lg bg-sky-600 text-white px-5 py-2 text-sm font-medium hover:bg-sky-700">Сохранить</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Глобальная замена материала -->
+  <div id="replaceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" onclick="document.getElementById('replaceModal').classList.add('hidden')"></div>
+    <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold text-lg">Замена материала</h2>
+        <button aria-label="Закрыть" id="rpClose" type="button" class="text-slate-400 hover:text-slate-700 text-xl px-2">✕</button>
+      </div>
+      <p class="text-xs text-slate-500">Меняет металл и толщину сразу во всём расчёте (и внутри узлов). Цены резки, металла, гибки и сварки берутся из прайса нового металла, вес пересчитывается. Новый итог виден до применения.</p>
+      <label class="block"><span class="text-xs text-slate-500">Заменить</span>
+        <select id="rpFrom" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm bg-white"></select></label>
+      <div class="grid grid-cols-[1fr_8rem] gap-3">
+        <label class="block"><span class="text-xs text-slate-500">На металл</span>
+          <select id="rpToMat" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm bg-white"></select></label>
+        <label class="block"><span class="text-xs text-slate-500">Толщина, мм</span>
+          <select id="rpToTh" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm bg-white"></select></label>
+      </div>
+      <label class="flex items-start gap-2 text-sm text-slate-600"><input id="rpServices" type="checkbox" checked class="mt-0.5 accent-violet-600">
+        <span>Заменить и в гибке, сварке, трубах <span class="block text-xs text-slate-400">гибка и сварка той же толщины получат новый металл и толщину; трубы только при замене «Все материалы» (меняется металл, стенка остаётся)</span></span></label>
+      <div id="rpPreview" class="rounded-xl bg-violet-50 px-4 py-3 space-y-0.5"></div>
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="document.getElementById('replaceModal').classList.add('hidden')" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50">Отмена</button>
+        <button id="rpApply" type="button" class="rounded-lg bg-violet-600 text-white px-5 py-2 text-sm font-medium hover:bg-violet-700 disabled:opacity-40">Заменить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Маршрутный лист -->
+  <div id="routeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" onclick="document.getElementById('routeModal').classList.add('hidden')"></div>
+    <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold text-lg">Маршрутный лист для цеха</h2>
+        <button aria-label="Закрыть" id="routeClose" type="button" class="text-slate-400 hover:text-slate-700 text-xl px-2">✕</button>
+      </div>
+      <p class="text-xs text-slate-500">Без цен. Все операции по участкам, эскизы деталей лазера, количество, графы «Исполнитель / Дата / ОТК» и QR-код с номером заказа.</p>
+      <div class="grid grid-cols-3 gap-3">
+        <label class="block"><span class="text-xs text-slate-500">Номер заказа</span>
+          <input id="routeNumber" type="text" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+        <label class="block"><span class="text-xs text-slate-500">Дата выдачи</span>
+          <input id="routeDate" type="date" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+        <label class="block"><span class="text-xs text-slate-500">Срок изготовления</span>
+          <input id="routeDue" type="date" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="block"><span class="text-xs text-slate-500">Заказчик</span>
+          <input id="routeCustomer" type="text" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+        <label class="block"><span class="text-xs text-slate-500">Ответственный / мастер</span>
+          <input id="routeMaster" type="text" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+      </div>
+      <label class="block"><span class="text-xs text-slate-500">Примечание для цеха</span>
+        <textarea id="routeNote" rows="2" placeholder="например: кромки зачистить, упаковка в плёнку" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></textarea></label>
+      <div class="flex justify-end">
+        <button id="routeMakeBtn" type="button" class="rounded-lg bg-slate-800 text-white px-5 py-2 font-medium hover:bg-slate-900 disabled:opacity-50">Скачать PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Окно входа -->
+  <div id="authOverlay" class="hidden fixed inset-0 z-[60] bg-slate-100 overflow-y-auto">
+   <button type="button" data-theme-btn class="theme-btn fixed top-4 right-4 z-10" title="Тёмная тема">🌙</button>
+   <div class="min-h-full flex items-center justify-center p-4">
+   <div class="w-full max-w-4xl grid gap-4 md:grid-cols-[1fr_24rem] items-stretch">
+    <form id="authForm" class="md:order-2 w-full bg-white rounded-2xl border border-slate-200 shadow-xl p-6 space-y-4" autocomplete="on">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center text-xl font-bold">✦</div>
+        <div>
+          <div class="text-xl font-semibold">МеталлРасчёт</div>
+          <div class="text-sm text-slate-500">Калькулятор металлообработки</div>
+        </div>
+      </div>
+      <div>
+        <h2 id="authTitle" class="text-lg font-semibold">Вход</h2>
+      </div>
+      <label class="block">
+        <span class="text-sm text-slate-500">Логин</span>
+        <input id="authLogin" name="username" type="text" autocomplete="username"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+      </label>
+      <label class="block">
+        <span class="text-sm text-slate-500">Пароль</span>
+        <input id="authPassword" name="password" type="password" autocomplete="current-password"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+      </label>
+      <label id="authPassword2Wrap" class="block hidden">
+        <span class="text-sm text-slate-500">Повторите пароль</span>
+        <input id="authPassword2" type="password" autocomplete="new-password"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+      </label>
+      <label class="flex items-center gap-2 text-sm text-slate-600">
+        <input id="authRemember" type="checkbox" checked class="w-4 h-4 accent-orange-500">
+        Запомнить меня в этом браузере
+      </label>
+      <p id="authError" class="text-sm text-red-600 min-h-[1.25rem]"></p>
+      <button id="authSubmit" type="submit" class="w-full rounded-lg bg-orange-500 text-white px-4 py-2.5 font-medium hover:bg-orange-600">Войти</button>
+      <p class="hidden"><span id="authSwitchText"></span><button id="authSwitch" type="button"></button></p>
+      <div class="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs text-slate-600 space-y-1">
+        <div class="font-medium text-slate-700">Где взять логин и пароль?</div>
+        <p>Самостоятельной регистрации нет, доступ выдаёт администратор. Напишите ему, он создаст учётную запись и пришлёт логин и пароль.</p>
+        <p>Забыли пароль? Администратор задаст новый.</p>
+      </div>
+    </form>
+
+    <!-- Информация для тех, у кого ещё нет аккаунта -->
+    <aside class="md:order-1 rounded-2xl bg-slate-900 text-slate-100 p-6 space-y-4 shadow-xl">
+      <div>
+                <h2 class="text-2xl font-semibold mt-1">Расчёт стоимости металлообработки</h2>
+        <p class="text-sm text-slate-300 mt-2">Внутренний сервис компании: загружаете чертёж или вводите размеры и получаете смету, Excel и коммерческое предложение в PDF для клиента.</p>
+      </div>
+      <ul class="grid gap-2 sm:grid-cols-2 text-sm">
+        <li class="rounded-lg bg-white/5 px-3 py-2"><b class="text-white">Лазер</b><br><span class="text-slate-400">длина реза и врезки из DXF, металл с листа</span></li>
+        <li class="rounded-lg bg-white/5 px-3 py-2"><b class="text-white">Труборез</b><br><span class="text-slate-400">по размерам или по 3D-модели STEP/STL</span></li>
+        <li class="rounded-lg bg-white/5 px-3 py-2"><b class="text-white">Гибка</b><br><span class="text-slate-400">гибы, наладка, длина детали</span></li>
+        <li class="rounded-lg bg-white/5 px-3 py-2"><b class="text-white">ЧПУ</b><br><span class="text-slate-400">токарка и фрезеровка</span></li>
+        <li class="rounded-lg bg-white/5 px-3 py-2"><b class="text-white">Сварка</b><br><span class="text-slate-400">по длине шва и виду сварки</span></li>
+        <li class="rounded-lg bg-white/5 px-3 py-2"><b class="text-white">Цинкование и покраска</b><br><span class="text-slate-400">по массе или площади, мин. заказ</span></li>
+        <li class="rounded-lg bg-white/5 px-3 py-2"><b class="text-white">Пила</b><br><span class="text-slate-400">резы на ленточной пиле</span></li>
+        <li class="rounded-lg bg-white/5 px-3 py-2"><b class="text-white">DXF → 3D и узлы</b><br><span class="text-slate-400">3D-модель из чертежа, сборка изделия</span></li>
+      </ul>
+      <div class="text-sm text-slate-300 space-y-1">
+        <div class="font-medium text-white">После входа</div>
+        <p>• все расчёты сохраняются в облаке и видны коллегам с любого устройства;<br>• общий прайс-лист, реквизиты нескольких фирм, нумерация КП;<br>• выгрузка в Excel и PDF-КП с логотипом, подписью и печатью.</p>
+      </div>
+      <p class="text-xs text-slate-400 border-t border-white/10 pt-3">Доступ только для сотрудников. Нет аккаунта? Обратитесь к администратору.</p>
+    </aside>
+   </div>
+   </div>
+  </div>
+
+  <main class="app-content space-y-5">
+
+    <!-- Режим сборки узла -->
+    <div id="assemblyBanner" class="hidden sticky top-[4.25rem] z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-violet-300 bg-violet-50 px-4 py-3 text-sm text-violet-900 shadow-sm">
+      <span>Добавляете операцию «<b id="assemblyOp"></b>» в узел «<b id="assemblyName"></b>». Заполните форму или загрузите файл и нажмите «Добавить в расчёт»: позиция попадёт в узел, а не в смету.</span>
+      <button id="assemblyCancel" type="button" class="rounded-lg border border-violet-300 bg-white px-3 py-1.5 hover:bg-violet-100">Вернуться к узлу</button>
+    </div>
+
+    <!-- Вкладка «Лазерная резка»: настройки + загрузка -->
+    <section id="laserTab" class="grid gap-5">
+
+      <!-- Настройки материала: три колонки на широком экране — металл, цены, расчёт металла -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-4">
+          <h2 class="font-semibold">Материал по умолчанию</h2>
+          <p class="text-sm text-slate-500">Подставляется в каждый новый файл. У отдельного файла можно поменять в его строке сметы.</p>
+        </div>
+        <div class="laser-cols">
+        <div class="space-y-4">
+        <label class="block">
+          <span class="text-sm text-slate-500">Тип металла</span>
+          <select id="materialSelect" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+        </label>
+
+        <label class="block">
+          <span class="text-sm text-slate-500">Толщина, мм</span>
+          <select id="thicknessSelect" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+        </label>
+
+        </div>
+        <div class="bg-slate-50 rounded-lg p-3 space-y-2">
+          <p class="text-xs text-slate-500">Цены для этого металла и толщины. Свои значения запомнятся.</p>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block text-xs text-slate-500">Цена 1 м реза, ₽
+              <input id="def_perMeter" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+            </label>
+            <label class="block text-xs text-slate-500">Цена врезки, ₽
+              <input id="def_perPierce" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+            </label>
+            <label class="block text-xs text-slate-500">Лист: ширина, мм
+              <input id="def_sheetW" type="number" min="0" step="1" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+            </label>
+            <label class="block text-xs text-slate-500">Лист: длина, мм
+              <input id="def_sheetH" type="number" min="0" step="1" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+            </label>
+            <label class="block text-xs text-slate-500 col-span-2">Цена листа, ₽
+              <input id="def_sheetPrice" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+            </label>
+          </div>
+        </div>
+
+        <div class="space-y-3 laser-col-metal">
+          <h3 class="font-medium text-sm">Стоимость металла</h3>
+          <label class="block">
+            <span class="text-sm text-slate-500">Считать металл</span>
+            <select id="metalMethodSelect" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+              <option value="bbox">по габариту детали (прямоугольник)</option>
+              <option value="net">по фактической площади детали</option>
+            </select>
+          </label>
+          <label id="metalAllowWrap" class="block">
+            <span class="text-sm text-slate-500">Припуск к габариту детали, мм (100×100 при 10 мм → считаем 110×110; остаток листа не считаем)</span>
+            <input id="metalAllowInput" type="number" min="0" max="500" step="1"
+              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Коэффициент на металл (наценка; 0 = металл заказчика)</span>
+            <input id="metalCoefInput" type="number" min="0" step="0.05"
+              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-600" title="Наложенные друг на друга линии лазер прошёл бы дважды">
+            <input id="dedupeCheckbox" type="checkbox" class="rounded border-slate-300">
+            Удалять двойные линии (дубли) до расчёта
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-600">
+            <input id="mergeSameCheckbox" type="checkbox" class="rounded border-slate-300">
+            Объединять одинаковые детали в одну строку
+          </label>
+          <button id="applyAllBtn" type="button" class="btn btn-secondary w-full" title="Поставить этот материал и цены во все уже загруженные файлы">
+            Применить ко всем файлам
+          </button>
+        </div>
+        </div>
+      </div>
+
+      <!-- Зона загрузки -->
+      <div>
+        <div id="dropZone"
+          class="drop-zone min-h-[180px] rounded-2xl border-2 border-dashed border-slate-300 bg-white flex flex-col sm:flex-row items-center justify-center gap-x-6 gap-y-3 text-center sm:text-left p-6 cursor-pointer">
+          <svg class="w-10 h-10 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+          </svg>
+          <div>
+            <p class="font-medium">Перетащите DXF-файлы сюда</p>
+            <p class="text-sm text-slate-500">Можно несколько сразу. Каждый файл станет строкой сметы.</p>
+          </div>
+          <button id="pickFileBtn" type="button" class="btn btn-primary">
+            Выбрать файлы
+          </button>
+          <input id="fileInput" type="file" accept=".dxf" multiple class="hidden">
+          <p id="loadingText" class="hidden text-sm text-orange-600 mt-3">Обработка…</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Вкладка «Шаблоны» (мини-CAD) -->
+    <section id="tplTab" class="hidden grid gap-6 lg:grid-cols-5">
+      <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <div>
+          <h2 class="font-semibold">Шаблоны деталей</h2>
+          <p class="text-sm text-slate-500">Клиент не прислал DXF? Выберите типовую деталь, впишите размеры: чертёж, длина реза и цена посчитаются сами, DXF можно скачать для станка.</p>
+        </div>
+        <div id="tplCards" class="grid grid-cols-2 gap-2"></div>
+        <div id="tplFields" class="grid gap-3 sm:grid-cols-2"></div>
+        <p id="tplError" class="hidden text-sm rounded-lg bg-rose-50 text-rose-700 px-3 py-2"></p>
+        <div class="grid gap-3 sm:grid-cols-2 border-t border-slate-100 pt-3">
+          <label class="block sm:col-span-2"><span class="text-xs text-slate-500">Название в смете (необязательно)</span>
+            <input id="tplName" type="text" maxlength="80" placeholder="по умолчанию из размеров" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"></label>
+          <label class="block"><span class="text-xs text-slate-500">Материал</span>
+            <select id="tplMaterial" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"></select></label>
+          <label class="block"><span class="text-xs text-slate-500">Толщина, мм</span>
+            <select id="tplThickness" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"></select></label>
+          <label class="block"><span class="text-xs text-slate-500">Количество, шт</span>
+            <input id="tplQty" type="number" min="1" step="1" value="1" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"></label>
+        </div>
+      </div>
+      <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
+        <canvas id="tplCanvas" class="w-full h-[340px] rounded-lg bg-slate-900"></canvas>
+        <div id="tplStats" class="space-y-1"></div>
+        <div class="flex flex-wrap justify-end gap-2 pt-1">
+          <button id="tplDxfBtn" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-40">Скачать DXF</button>
+          <button id="tplAddBtn" type="button" class="rounded-lg bg-orange-500 text-white px-5 py-2 text-sm font-medium hover:bg-orange-600 disabled:opacity-40">Добавить в расчёт</button>
+        </div>
+        <p class="text-xs text-slate-400">DXF: версия R12, миллиметры, слой CUT: отрезки, дуги и окружности. Открывается AutoCAD, КОМПАС и софтом лазера (CypCut, Lantek и др.). Деталь попадает в смету как обычный лазерный файл.</p>
+      </div>
+    </section>
+
+    <!-- Вкладка «Сварка» -->
+    <section id="weldTab" class="hidden grid gap-6 lg:grid-cols-3">
+      <form id="weldForm" class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 space-y-4" autocomplete="off">
+        <div>
+          <h2 class="font-semibold">Сварка</h2>
+          <p class="text-sm text-slate-500">Чертёж не нужен: хватит длины шва и вида сварки.</p>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block sm:col-span-2">
+            <span class="text-sm text-slate-500">Наименование (необязательно)</span>
+            <input id="weldName" type="text" maxlength="80" placeholder="например: Рама, кронштейн"
+              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Тип сварки</span>
+            <select id="weldType" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+            <span id="weldTypeNote" class="block text-xs text-slate-400 mt-1"></span>
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Материал</span>
+            <select id="weldMaterial" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Толщина металла, мм</span>
+            <input id="weldThickness" type="number" min="0.1" step="0.1" list="weldThicknessList"
+              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+            <datalist id="weldThicknessList"></datalist>
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Длина шва</span>
+            <span class="mt-1 flex gap-2">
+              <input id="weldLength" type="number" min="0" step="any" placeholder="например: 2.5"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+              <select id="weldLengthUnit" class="rounded-lg border border-slate-300 px-2 py-2 bg-white">
+                <option value="m">м</option>
+                <option value="cm">см</option>
+                <option value="mm">мм</option>
+              </select>
+            </span>
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Положение шва (сложность)</span>
+            <select id="weldPosition" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Количество изделий, шт</span>
+            <input id="weldQty" type="number" min="1" step="1" value="1"
+              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+        </div>
+        <p id="weldWarning" class="hidden text-sm"></p>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-orange-50 px-4 py-3">
+          <span id="weldPreview" class="text-sm text-slate-700 tabular-nums"></span>
+          <button id="weldAddBtn" type="submit"
+            class="rounded-lg bg-orange-500 text-white px-5 py-2 font-medium hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed">
+            Добавить в расчёт
+          </button>
+        </div>
+      </form>
+
+      <!-- Прайс на сварку -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h2 class="font-semibold">Прайс на сварку</h2>
+            <p class="text-xs text-slate-500">Цена 1 м шва, ₽, для толщины 2–4 мм в нижнем положении. Свои цены сохраняются автоматически.</p>
+          </div>
+          <button id="weldResetBtn" type="button" class="shrink-0 rounded-lg border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">Сбросить</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="calc-table text-sm w-full">
+            <thead class="bg-slate-50 text-slate-500 text-left">
+              <tr><th>Вид</th><th class="text-right">Сталь</th><th class="text-right">Нерж.</th><th class="text-right">Алюм.</th></tr>
+            </thead>
+            <tbody id="weldPriceBody"></tbody>
+          </table>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium mb-1">Коэффициент толщины</h3>
+          <table class="calc-table text-sm w-full">
+            <tbody id="weldThickBody"></tbody>
+          </table>
+          <p class="text-xs text-slate-400 mt-2">Положение: нижнее ×1, вертикальное ×1,2, потолочное ×1,5.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Вкладка «Гибка» -->
+    <section id="bendTab" class="hidden grid gap-6 lg:grid-cols-3">
+      <form id="bendForm" class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 space-y-4" autocomplete="off">
+        <div>
+          <h2 class="font-semibold">Гибка</h2>
+          <p class="text-sm text-slate-500">Стоимость = гибов × цена 1 гиба + длина гибов × наценка за 1 м.</p>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block sm:col-span-2">
+            <span class="text-sm text-slate-500">Наименование (необязательно)</span>
+            <input id="bendName" type="text" maxlength="80" placeholder="например: Уголок, короб" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Материал</span>
+            <select id="bendMaterial" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Толщина металла, мм</span>
+            <input id="bendThickness" type="number" min="0.1" step="0.1" list="bendThicknessList" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+            <datalist id="bendThicknessList"></datalist>
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Количество гибов на 1 деталь, шт</span>
+            <input id="bendCount" type="number" min="1" step="1" placeholder="например: 4" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Суммарная длина гибов на 1 деталь</span>
+            <span class="mt-1 flex gap-2">
+              <input id="bendLength" type="number" min="0" step="any" placeholder="например: 1.2"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+              <select id="bendLengthUnit" class="rounded-lg border border-slate-300 px-2 py-2 bg-white">
+                <option value="m">м</option>
+                <option value="cm">см</option>
+                <option value="mm">мм</option>
+              </select>
+            </span>
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Количество деталей, шт</span>
+            <input id="bendQty" type="number" min="1" step="1" value="1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+        </div>
+        <p id="bendWarning" class="hidden text-sm text-amber-600"></p>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-orange-50 px-4 py-3">
+          <span id="bendPreview" class="text-sm text-slate-700 tabular-nums"></span>
+          <button type="submit" class="rounded-lg bg-orange-500 text-white px-5 py-2 font-medium hover:bg-orange-600">Добавить в расчёт</button>
+        </div>
+      </form>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h2 class="font-semibold">Прайс на гибку</h2>
+            <p class="text-xs text-slate-500">Для чёрной стали, ₽. Для других материалов умножается на коэффициент.</p>
+          </div>
+          <button id="bendResetBtn" type="button" class="shrink-0 rounded-lg border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">Сбросить</button>
+        </div>
+        <table class="calc-table text-sm w-full">
+          <thead class="bg-slate-50 text-slate-500 text-left">
+            <tr><th>Толщина</th><th class="text-right">1 гиб</th><th class="text-right">за 1 м</th></tr>
+          </thead>
+          <tbody id="bendPriceBody"></tbody>
+        </table>
+        <div>
+          <h3 class="text-sm font-medium mb-1">Коэффициент материала</h3>
+          <table class="calc-table text-sm w-full"><tbody id="bendCoefBody"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Вкладка «Цинковка и покрытия» -->
+    <section id="coatTab" class="hidden grid gap-6 lg:grid-cols-3">
+      <form id="coatForm" class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 space-y-4" autocomplete="off">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 class="font-semibold">Цинковка и покрытия</h2>
+            <p class="text-sm text-slate-500">Горячее и термодиффузионное цинкование считается по весу, гальваника по площади. Порошковая покраска во вкладке «Покраска».</p>
+          </div>
+          <button id="coatFromLaserBtn" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+            title="Подставить общий вес и площадь всех деталей из вкладки «Лазер»">Взять из деталей лазера</button>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block sm:col-span-2">
+            <span class="text-sm text-slate-500">Наименование (необязательно)</span>
+            <input id="coatName" type="text" maxlength="80" placeholder="например: Комплект деталей" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block sm:col-span-2">
+            <span class="text-sm text-slate-500">Вид покрытия</span>
+            <select id="coatType" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+            <span id="coatTypeNote" class="block text-xs text-slate-400 mt-1"></span>
+          </label>
+          <label id="coatWeightWrap" class="block">
+            <span id="coatWeightLabel" class="text-sm text-slate-500">Общий вес деталей, кг</span>
+            <input id="coatWeight" type="number" min="0" step="any" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label id="coatAreaWrap" class="block">
+            <span id="coatAreaLabel" class="text-sm text-slate-500">Площадь поверхности, м²</span>
+            <input id="coatArea" type="number" min="0" step="any" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Количество партий / комплектов</span>
+            <input id="coatQty" type="number" min="1" step="1" value="1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-orange-50 px-4 py-3">
+          <span id="coatPreview" class="text-sm text-slate-700 tabular-nums"></span>
+          <button type="submit" class="rounded-lg bg-orange-500 text-white px-5 py-2 font-medium hover:bg-orange-600">Добавить в расчёт</button>
+        </div>
+      </form>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h2 class="font-semibold">Прайс на покрытия</h2>
+            <p class="text-xs text-slate-500">Свои цены сохраняются автоматически.</p>
+          </div>
+          <button id="coatResetBtn" type="button" class="shrink-0 rounded-lg border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">Сбросить</button>
+        </div>
+        <table class="calc-table text-sm w-full">
+          <thead class="bg-slate-50 text-slate-500 text-left">
+            <tr><th>Вид</th><th></th><th class="text-right">Цена</th><th class="text-right">Мин. заказ</th></tr>
+          </thead>
+          <tbody id="coatPriceBody"></tbody>
+        </table>
+        <p class="text-xs text-slate-400">Площадь из деталей лазера считается с двух сторон листа, без торцов.</p>
+      </div>
+    </section>
+
+    <!-- Вкладка «Порошковая покраска» -->
+    <section id="paintTab" class="hidden grid gap-6 lg:grid-cols-3">
+      <form id="paintForm" class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 space-y-4" autocomplete="off">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 class="font-semibold">Порошковая покраска</h2>
+            <p class="text-sm text-slate-500">Стоимость = площадь окраски (м²) × цена за м² по фактуре краски (+ грунт) × количество.</p>
+          </div>
+          <button id="paintFromLaserBtn" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50" title="Подставить площадь всех деталей из вкладки «Лазер»">Взять из деталей лазера</button>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block sm:col-span-2">
+            <span class="text-sm text-slate-500">Наименование (необязательно)</span>
+            <input id="paintName" type="text" maxlength="80" placeholder="например: Корпус шкафа" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Площадь окраски 1 шт, м² (обязательно)</span>
+            <input id="paintArea" type="number" min="0" step="any" placeholder="например: 0.85" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Количество, шт</span>
+            <input id="paintQty" type="number" min="1" step="1" value="1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <div class="sm:col-span-2 flex flex-wrap items-end gap-2 rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-sm">
+            <span class="text-xs text-slate-500 w-full">Посчитать площадь по размерам листовой детали:</span>
+            <input id="paintSizeA" type="number" min="0" step="any" placeholder="длина, мм" class="w-28 rounded border border-slate-300 px-2 py-1">
+            <span class="text-slate-400">×</span>
+            <input id="paintSizeB" type="number" min="0" step="any" placeholder="ширина, мм" class="w-28 rounded border border-slate-300 px-2 py-1">
+            <label class="flex items-center gap-1 text-xs text-slate-600"><input id="paintTwoSides" type="checkbox" checked class="accent-orange-500"> с двух сторон</label>
+            <button id="paintSizeBtn" type="button" class="rounded border border-slate-300 bg-white px-3 py-1 hover:bg-slate-100">→ в площадь</button>
+          </div>
+          <label class="block">
+            <span class="text-sm text-slate-500">Тип краски (фактура)</span>
+            <select id="paintFinish" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"></select>
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-600 self-end pb-2">
+            <input id="paintPrimer" type="checkbox" class="w-4 h-4 accent-orange-500"> Грунт (второй слой)
+          </label>
+          <p id="paintPriceNote" class="sm:col-span-2 text-xs text-slate-400 -mt-2"></p>
+          <div class="sm:col-span-2 space-y-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-sm text-slate-500">Цвет по каталогу RAL</span>
+              <div id="paintRalSelected" class="flex items-center gap-2 text-sm"></div>
+            </div>
+            <input id="paintRalSearch" type="text" placeholder="Поиск: код (9016) или название (антрацит, белый…)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+            <div id="paintRalGrid" class="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto"></div>
+            <p id="paintRalHint" class="text-xs text-slate-400"></p>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-orange-50 px-4 py-3">
+          <span id="paintPreview" class="text-sm text-slate-700 tabular-nums"></span>
+          <button type="submit" class="rounded-lg bg-orange-500 text-white px-5 py-2 font-medium hover:bg-orange-600">Добавить в расчёт</button>
+        </div>
+      </form>
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h2 class="font-semibold">Прайс на покраску</h2>
+            <p class="text-xs text-slate-500">Цена за 1 м², ₽. Свои цены сохраняются автоматически.</p>
+          </div>
+          <button id="paintResetBtn" type="button" class="shrink-0 rounded-lg border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">Сбросить</button>
+        </div>
+        <table class="calc-table text-sm w-full"><tbody id="paintPriceBody"></tbody></table>
+        <p class="text-xs text-slate-400">Цвета на экране приблизительные. Сверяйте с физическим веером RAL.</p>
+      </div>
+    </section>
+
+    <!-- Вкладка «Метизы и слесарные работы» -->
+    <section id="hwTab" class="hidden grid gap-6 lg:grid-cols-3">
+      <form id="hwForm" class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 space-y-4" autocomplete="off">
+        <div>
+          <h2 class="font-semibold">Метизы и слесарные работы</h2>
+          <p class="text-sm text-slate-500">Заклёпки, запрессовка гаек и шпилек (PEM), нарезка резьбы, зенковка. Стоимость = (цена метиза + цена установки) × количество.</p>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block sm:col-span-2">
+            <span class="text-sm text-slate-500">Для какой детали (необязательно)</span>
+            <input id="hwName" type="text" maxlength="80" placeholder="например: Панель передняя" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block sm:col-span-2">
+            <span class="text-sm text-slate-500">Позиция из справочника</span>
+            <select id="hwItem" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"></select>
+            <span id="hwItemNote" class="block text-xs text-slate-400 mt-1"></span>
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Количество, шт / отверстий</span>
+            <input id="hwQty" type="number" min="1" step="1" placeholder="например: 50" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label id="hwCustomerWrap" class="flex items-center gap-2 text-sm text-slate-600 self-end pb-2">
+            <input id="hwCustomer" type="checkbox" class="w-4 h-4 accent-orange-500"> Метиз заказчика, только установка
+          </label>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-orange-50 px-4 py-3">
+          <span id="hwPreview" class="text-sm text-slate-700 tabular-nums"></span>
+          <button type="submit" class="rounded-lg bg-orange-500 text-white px-5 py-2 font-medium hover:bg-orange-600">Добавить в расчёт</button>
+        </div>
+      </form>
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h2 class="font-semibold">Справочник и цены</h2>
+            <p class="text-xs text-slate-500">Метиз / установка за 1 шт, ₽. Изменения сохраняются автоматически.</p>
+          </div>
+          <button id="hwResetBtn" type="button" class="shrink-0 rounded-lg border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">Сбросить</button>
+        </div>
+        <div class="max-h-[28rem] overflow-y-auto">
+          <table class="calc-table text-sm w-full">
+            <thead class="bg-slate-50 text-slate-500 text-left text-xs"><tr><th>Позиция</th><th class="text-right">Метиз</th><th class="text-right">Работа</th><th></th></tr></thead>
+            <tbody id="hwPriceBody"></tbody>
+          </table>
+        </div>
+        <div class="rounded-lg border border-dashed border-slate-300 p-2.5 space-y-2">
+          <div class="text-xs font-medium text-slate-600">＋ Своя позиция в справочник</div>
+          <input id="hwNewName" type="text" placeholder="например: Гайка-барашек М6" class="w-full rounded border border-slate-300 px-2 py-1 text-sm">
+          <div class="grid grid-cols-3 gap-1.5">
+            <input id="hwNewPrice" type="number" min="0" step="any" placeholder="метиз ₽" class="rounded border border-slate-300 px-2 py-1 text-sm">
+            <input id="hwNewWork" type="number" min="0" step="any" placeholder="работа ₽" class="rounded border border-slate-300 px-2 py-1 text-sm">
+            <select id="hwNewUnit" class="rounded border border-slate-300 px-1 py-1 text-sm bg-white"><option>шт</option><option>отв.</option><option>м</option></select>
+          </div>
+          <button id="hwNewAdd" type="button" class="w-full rounded border border-slate-300 px-2 py-1 text-sm hover:bg-slate-50">Добавить в справочник</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Вкладка «Ленточная пила» -->
+    <section id="sawTab" class="hidden grid gap-6 lg:grid-cols-3">
+      <form id="sawForm" class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 space-y-4" autocomplete="off">
+        <div>
+          <h2 class="font-semibold">Ленточная пила</h2>
+          <p class="text-sm text-slate-500">Стоимость = количество резов × цена 1 реза. Цена реза зависит от профиля и размера сечения.</p>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block sm:col-span-2">
+            <span class="text-sm text-slate-500">Наименование (необязательно)</span>
+            <input id="sawName" type="text" maxlength="80" placeholder="например: Стойки 40×40" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Тип профиля</span>
+            <select id="sawProfile" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Размер сечения, мм (диаметр или большая сторона)</span>
+            <input id="sawSize" type="number" min="1" step="any" placeholder="например: 40" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Количество резов, шт</span>
+            <input id="sawCuts" type="number" min="1" step="1" placeholder="например: 24" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+        </div>
+        <p id="sawWarning" class="hidden text-sm text-amber-600"></p>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-orange-50 px-4 py-3">
+          <span id="sawPreview" class="text-sm text-slate-700 tabular-nums"></span>
+          <button type="submit" class="rounded-lg bg-orange-500 text-white px-5 py-2 font-medium hover:bg-orange-600">Добавить в расчёт</button>
+        </div>
+      </form>
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-2">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h2 class="font-semibold">Прайс на пилу</h2>
+            <p class="text-xs text-slate-500">Цена 1 реза, ₽, по размеру сечения.</p>
+          </div>
+          <button id="sawResetBtn" type="button" class="shrink-0 rounded-lg border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">Сбросить</button>
+        </div>
+        <div id="sawPriceBox"></div>
+      </div>
+    </section>
+
+    <!-- Вкладка «Лазерный труборез» -->
+    <section id="tubeTab" class="hidden grid gap-6 lg:grid-cols-3">
+      <form id="tubeForm" class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 space-y-4" autocomplete="off">
+        <div>
+          <h2 class="font-semibold">Лазерный труборез</h2>
+          <p class="text-sm text-slate-500">Стоимость 1 детали = резка (длина реза × цена метра + врезки × цена врезки) + труба (длина детали × цена трубы за метр). Трубу выберите из своего прайса внизу или впишите вручную.</p>
+        </div>
+        <div id="tubeDrop" class="drop-zone rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center cursor-pointer">
+          <p class="font-medium">Загрузите 3D-модель трубы</p>
+          <p class="text-xs text-slate-500 mb-3">STEP, STP, IGES, IGS или STL, можно несколько файлов. Определятся профиль, сечение, стенка, длина, длина реза и врезки; позиция сразу попадёт в расчёт с материалом и количеством, выбранными ниже.</p>
+          <button id="tubePickBtn" type="button" class="rounded-lg bg-orange-500 text-white px-4 py-2 text-sm font-medium hover:bg-orange-600">Выбрать модель</button>
+          <input id="tubeFileInput" type="file" accept=".step,.stp,.iges,.igs,.stl" multiple class="hidden">
+          <p id="tubeLoading" class="hidden text-sm text-orange-600 mt-3"></p>
+        </div>
+        <div id="tubeReport" class="hidden space-y-1 text-sm"></div>
+        <p class="text-xs text-slate-400 text-center">или введите параметры вручную</p>
+        <label class="block">
+          <span class="text-sm text-slate-500">Труба из моего прайса</span>
+          <select id="tubeCatSelect" class="mt-1 w-full rounded-lg border border-orange-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+        </label>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block sm:col-span-2">
+            <span class="text-sm text-slate-500">Наименование (необязательно)</span>
+            <input id="tubeName" type="text" maxlength="80" placeholder="например: Перекладина" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Тип профиля</span>
+            <select id="tubeProfile" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Материал</span>
+            <select id="tubeMaterial" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Размер сечения, мм</span>
+            <input id="tubeSize" type="text" inputmode="decimal" placeholder="например: 40×20 или 57" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Толщина стенки, мм</span>
+            <input id="tubeWall" type="number" min="0.1" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Длина реза на 1 деталь, м</span>
+            <input id="tubeLength" type="number" min="0" step="any" placeholder="например: 0.35" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Врезок на 1 деталь, шт</span>
+            <input id="tubePierces" type="number" min="0" step="1" placeholder="например: 3" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Длина детали (трубы), мм</span>
+            <input id="tubePartLen" type="number" min="0" step="any" placeholder="например: 1200" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Цена трубы, ₽ за 1 м</span>
+            <input id="tubeMetalPrice" type="number" min="0" step="0.01" placeholder="0 = металл заказчика" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-500">Количество деталей, шт</span>
+            <input id="tubeQty" type="number" min="1" step="1" value="1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </label>
+        </div>
+        <p id="tubePriceNote" class="text-xs text-slate-500"></p>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-orange-50 px-4 py-3">
+          <span id="tubePreview" class="text-sm text-slate-700 tabular-nums"></span>
+          <button type="submit" class="rounded-lg bg-orange-500 text-white px-5 py-2 font-medium hover:bg-orange-600">Добавить в расчёт</button>
+        </div>
+      </form>
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-3 text-sm">
+        <h2 class="font-semibold">Как считается</h2>
+        <p class="text-slate-600"><b>Резка</b> = длина реза × цена 1 м + врезки × цена врезки.</p>
+        <p class="text-slate-600"><b>Труба</b> = длина детали × цена трубы за 1 м.</p>
+        <p class="text-slate-600"><b>За 1 деталь</b> = резка + труба. Коэффициентов нет.</p>
+        <p class="text-xs text-slate-500">Цены резки и трубы берутся из «Моего прайса труб» ниже. Трубу, которой нет в списке, добавьте кнопкой «＋ Своя труба» в прайсе. Цена трубы 0 = металл заказчика.</p>
+      </div>
+    </section>
+
+    <!-- Вкладка «Раскрой труб» (оптимизатор хлыстов) -->
+    <section id="tnestTab" class="hidden space-y-6">
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 class="font-semibold">Раскрой трубы</h2>
+            <p class="text-sm text-slate-500">Для лазерного трубореза: детали раскладываются по хлыстам так, чтобы хлыстов ушло меньше всего, с учётом зазора между деталями, подрезки торца и нерезаемого хвоста в патроне. Разные профили считаются отдельно.</p>
+            <div class="mt-2 inline-flex rounded-lg border border-slate-300 overflow-hidden text-sm">
+              <button type="button" data-tn-mode="laser" class="tn-mode px-3 py-1.5">Лазерный труборез</button>
+              <button type="button" data-tn-mode="saw" class="tn-mode px-3 py-1.5 border-l border-slate-300">Ленточная пила</button>
+            </div>
+          </div>
+          <button id="tnImportBtn" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50" title="Подставить детали с длиной из вкладки «Труборез»">Взять из «Трубореза»</button>
+        </div>
+        <div id="tnDrop" class="drop-zone rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 cursor-pointer">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="font-medium">Перетащите сюда 3D-модели или чертежи деталей</p>
+              <p class="text-xs text-slate-500">STEP / IGES / STL: профиль, стенка и длина трубы распознаются сами. DXF: длина детали = длинная сторона на чертеже, профиль впишите.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 text-sm" onclick="event.stopPropagation()">
+              <label class="flex items-center gap-1">Кол-во каждой <input id="tnFileQty" type="number" min="1" step="1" value="1" class="w-16 rounded border border-slate-300 px-2 py-1 text-right"> шт</label>
+              <label class="flex items-center gap-1">Профиль для DXF <input id="tnDxfProfile" type="text" list="tnTubeList" placeholder="напр. □40×20×2" class="w-28 rounded border border-slate-300 px-2 py-1"></label>
+              <button id="tnPickBtn" type="button" class="rounded-lg bg-orange-500 text-white px-4 py-1.5 font-medium hover:bg-orange-600">Выбрать файлы</button>
+            </div>
+          </div>
+          <input id="tnFileInput" type="file" accept=".step,.stp,.iges,.igs,.stl,.dxf" multiple class="hidden">
+          <div id="tnFileReport" class="hidden mt-2 space-y-1 text-sm"></div>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-5">
+          <label class="block"><span class="text-xs text-slate-500">Длина стандартного хлыста, мм</span>
+            <input id="tn_stock" type="number" min="1" step="any" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+          <label class="block"><span id="tnKerfLabel" class="text-xs text-slate-500">Зазор между деталями, мм</span>
+            <input id="tn_kerf" type="number" min="0" step="any" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+          <label class="block"><span id="tnTrimLabel" class="text-xs text-slate-500">Подрезка торца в начале, мм</span>
+            <input id="tn_trim" type="number" min="0" step="any" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+          <label class="block" title="Последний кусок трубы, который держит патрон и который станок отрезать не может. Зависит от модели трубореза (у «безотходных» около 0)."><span class="text-xs text-slate-500">Хвост в патроне (не режется), мм</span>
+            <input id="tn_tail" type="number" min="0" step="any" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+          <label class="block"><span class="text-xs text-slate-500">Деловой остаток от, мм</span>
+            <input id="tn_keep" type="number" min="0" step="any" class="mt-0.5 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"></label>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="calc-table text-sm w-full">
+            <thead class="bg-slate-50 text-slate-500 text-left text-xs"><tr><th>№</th><th>Профиль</th><th>Деталь</th><th class="text-right">Длина, мм</th><th class="text-right">Кол-во, шт</th><th></th></tr></thead>
+            <tbody id="tnRows"></tbody>
+          </table>
+          <datalist id="tnTubeList"></datalist>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex gap-2">
+            <button id="tnAddRow" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50">＋ Добавить деталь</button>
+            <button id="tnClearRows" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50">Очистить</button>
+          </div>
+          <div class="flex gap-2">
+            <button id="tnPdfBtn" type="button" class="rounded-lg bg-slate-800 text-white px-4 py-2 text-sm font-medium hover:bg-slate-900 disabled:opacity-40" disabled>Скачать карту реза в PDF</button>
+            <button id="tnRunBtn" type="button" class="rounded-lg bg-orange-500 text-white px-5 py-2 text-sm font-medium hover:bg-orange-600">Рассчитать раскрой</button>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
+        <div id="tnResult" class="space-y-3"><p class="text-sm text-slate-400">Заполните детали и нажмите «Рассчитать раскрой».</p></div>
+        <p class="text-xs text-slate-400">Цветные блоки: детали (подписана длина). Тонкие тёмные полоски: рез и зазор. Серый: остаток, зелёный: деловой остаток. Тёмный в начале: подрезка торца, «патрон» в конце: нерезаемый хвост. Одинаковые хлысты объединены в одну схему («×3 хлыста»).</p>
+      </div>
+    </section>
+
+    <!-- Вкладка «Конвертер DXF в 3D» (утилита, в смету не попадает) -->
+    <section id="convTab" class="hidden grid gap-6 lg:grid-cols-3">
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <div>
+          <h2 class="font-semibold">Конвертер DXF в 3D</h2>
+          <p class="text-sm text-slate-500">Выдавливает плоский чертёж на толщину металла и сохраняет в STL. Отверстия остаются сквозными. Всё считается в браузере, в смету не попадает.</p>
+        </div>
+        <div id="convDrop" class="drop-zone rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center cursor-pointer">
+          <p class="font-medium">Перетащите DXF-чертёж сюда</p>
+          <p class="text-xs text-slate-500 mb-3">только .dxf</p>
+          <button id="convPickBtn" type="button" class="rounded-lg bg-orange-500 text-white px-4 py-2 text-sm font-medium hover:bg-orange-600">Выбрать файл</button>
+          <input id="convFileInput" type="file" accept=".dxf" class="hidden">
+        </div>
+        <label class="block">
+          <span class="text-sm text-slate-500">Толщина металла (ось Z), мм</span>
+          <input id="convThickness" type="number" min="0.1" step="0.1" value="3"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+        </label>
+        <div>
+          <p class="text-sm text-slate-500 mb-2">Сгенерировать и скачать 3D-модель:</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" data-export="step" disabled class="export-btn" title="Твёрдое тело для КОМПАС-3D, SolidWorks, Fusion 360, FreeCAD">
+              <b>STEP</b><span>для CAD (тело)</span></button>
+            <button type="button" data-export="stl" disabled class="export-btn" title="Сетка треугольников: 3D-печать, просмотр">
+              <b>STL</b><span>сетка, 3D-печать</span></button>
+            <button type="button" data-export="obj" disabled class="export-btn" title="Сетка для визуализации и других 3D-программ">
+              <b>OBJ</b><span>визуализация</span></button>
+            <button type="button" data-export="glb" disabled class="export-btn" title="Для веб-просмотрщиков, презентаций, AR">
+              <b>GLB</b><span>веб и презентации</span></button>
+          </div>
+        </div>
+        <p class="text-xs text-slate-400">Учитываются только замкнутые контуры. Рамка листа стандартного размера не выдавливается. В STEP дуги и отверстия сохраняются настоящими окружностями.</p>
+      </div>
+      <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 class="font-semibold">Предпросмотр <span id="convFileName" class="font-normal text-slate-500"></span></h2>
+          <button id="convResetView" type="button" class="rounded-lg border border-slate-300 px-3 py-1 text-xs hover:bg-slate-50">Вид по умолчанию</button>
+        </div>
+        <div id="convViewerWrap" class="hidden">
+          <canvas id="convCanvas" class="w-full h-[420px] rounded-lg bg-slate-900 touch-none"></canvas>
+          <p class="text-xs text-slate-400 mt-1">Вращение: левая кнопка мыши, сдвиг: правая, масштаб: колёсико.</p>
+        </div>
+        <p id="convInfo" class="text-sm text-slate-600">Загрузите чертёж, чтобы увидеть 3D-модель.</p>
+      </div>
+    </section>
+
+    <!-- Вкладка «Узел (сборка)» -->
+    <section id="nodeTab" class="hidden grid gap-6 lg:grid-cols-3">
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <div>
+          <h2 class="font-semibold">Узел (сборка)</h2>
+          <p class="text-sm text-slate-500">Изделие, которое проходит несколько станков: например, лазер → гибка → сварка → цинкование.</p>
+        </div>
+        <p id="nodeEditNote" class="hidden text-sm rounded-lg bg-amber-50 text-amber-800 px-3 py-2">Редактируете узел из сметы. После изменений нажмите «Сохранить изменения узла».</p>
+        <label class="block">
+          <span class="text-sm text-slate-500">Название узла</span>
+          <input id="nodeName" type="text" maxlength="100" placeholder="например: Опора колонны" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+        </label>
+        <label class="block">
+          <span class="text-sm text-slate-500">Количество готовых узлов, шт</span>
+          <input id="nodeQty" type="number" min="1" step="1" value="1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+        </label>
+        <label class="block">
+          <span class="text-sm text-slate-500">Описание для клиента (необязательно)</span>
+          <input id="nodeDesc" type="text" maxlength="160" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+          <span class="block text-xs text-slate-400 mt-1">Если пусто, подставится по операциям.</span>
+        </label>
+        <div class="rounded-xl bg-slate-50 p-3 space-y-2">
+          <span class="block text-sm font-medium">Добавить операцию</span>
+          <select id="nodeOpType" class="w-full rounded-lg border border-slate-300 px-3 py-2 bg-white"></select>
+          <button id="nodeAddOpBtn" type="button" class="w-full rounded-lg bg-violet-600 text-white px-4 py-2 text-sm font-medium hover:bg-violet-700">Добавить операцию</button>
+          <p class="text-xs text-slate-400">Откроется вкладка станка: заполните её как обычно, позиция попадёт в этот узел.</p>
+        </div>
+        <div class="rounded-xl bg-slate-50 p-3 space-y-2">
+          <span class="block text-sm font-medium">Или взять готовое</span>
+          <button id="nodeFromCalcBtn" type="button" class="w-full rounded-lg border border-violet-300 bg-white text-violet-700 px-4 py-2 text-sm font-medium hover:bg-violet-50">Добавить из моих расчётов</button>
+          <p class="text-xs text-slate-400">Все позиции выбранного расчёта станут операциями узла, лишние можно убрать крестиком.</p>
+        </div>
+      </div>
+      <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <h2 class="font-semibold">Состав узла</h2>
+        <div class="overflow-x-auto">
+          <table class="calc-table text-sm w-full">
+            <thead class="bg-slate-50 text-slate-500 text-left">
+              <tr><th>№</th><th>Операция</th><th>Что делаем</th><th class="text-right">Стоимость на 1 узел</th><th></th></tr>
+            </thead>
+            <tbody id="nodeOpsBody"></tbody>
+          </table>
+          <p id="nodeOpsEmpty" class="text-center text-slate-400 py-8">Операций пока нет. Нажмите «Добавить операцию».</p>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-violet-50 px-4 py-3">
+          <div class="text-sm">
+            <div>Стоимость 1 узла: <b id="nodeUnitTotal" class="tabular-nums">0,00 ₽</b></div>
+            <div class="text-slate-600 tabular-nums" id="nodeGrandTotal"></div>
+          </div>
+          <div class="flex gap-2">
+            <button id="nodeClearBtn" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50">Очистить</button>
+            <button id="nodeSaveBtn" type="button" disabled class="rounded-lg bg-violet-600 text-white px-5 py-2.5 font-semibold hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed">Добавить узел в общую смету</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Вкладка «ЧПУ: токарка и фрезеровка» (логика — cnc/app.js, все id с приставкой cnc-) -->
+    <section id="cncTab" class="hidden space-y-5">
+      <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 class="text-lg font-semibold">ЧПУ: токарка и фрезеровка</h2>
+        <p class="text-sm text-slate-500">Оценка по 3D-модели: STL, STEP, IGES.</p>
+      </div>
+
+      <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <!-- Загрузка и настройки -->
+        <div class="space-y-5">
+          <div id="cnc-dropzone" class="drop-zone rounded-2xl border-2 border-dashed border-slate-300 bg-white p-6 text-center cursor-pointer">
+            <input id="cnc-fileInput" type="file" accept=".stl,.step,.stp,.iges,.igs" multiple class="hidden" />
+            <svg class="w-10 h-10 mx-auto text-slate-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+            <p class="mt-2 font-medium">Перетащите 3D-модели сюда</p>
+            <p class="text-sm text-slate-500">STL, STEP, IGES. Можно несколько.</p>
+            <span class="btn btn-primary mt-3">Выбрать файлы</span>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+            <h3 class="font-semibold">Параметры</h3>
+            <label class="block">
+              <span class="text-sm text-slate-500">Тип обработки</span>
+              <select id="cnc-process" class="mt-1 w-full rounded-lg border-slate-300 border px-3 py-2"></select>
+            </label>
+            <label class="block">
+              <span class="text-sm text-slate-500">Материал</span>
+              <input id="cnc-materialSearch" type="search" placeholder="40Х, AISI 304, АМг6…" aria-label="Поиск материала" class="mt-1 w-full rounded-lg border-slate-300 border px-3 py-2 text-sm" />
+              <select id="cnc-material" class="mt-1 w-full rounded-lg border-slate-300 border px-3 py-2"></select>
+            </label>
+            <label class="block">
+              <span class="text-sm text-slate-500">Установы (перевороты детали), каждый +<span id="cnc-setupMinTxt">15</span> мин</span>
+              <select id="cnc-setups" class="mt-1 w-full rounded-lg border-slate-300 border px-3 py-2">
+                <option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="text-sm text-slate-500">Единицы модели</span>
+              <select id="cnc-units" class="mt-1 w-full rounded-lg border-slate-300 border px-3 py-2">
+                <option value="1" selected>миллиметры</option>
+                <option value="25.4">дюймы</option>
+                <option value="10">сантиметры</option>
+              </select>
+            </label>
+            <p class="text-xs text-slate-500">Параметры меняют выбранную деталь: её строка подсвечена в таблице.</p>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-3" id="cnc-regimeCard">
+            <div class="flex items-baseline justify-between gap-2">
+              <h3 class="font-semibold">Режимы и нормо-час</h3>
+              <button id="cnc-rgReset" type="button" class="text-sm text-slate-600 underline decoration-dotted underline-offset-4 hover:text-slate-900">Сбросить</button>
+            </div>
+            <p class="text-xs text-slate-500">Подставляются по материалу. Свои значения запомнятся для этого материала.</p>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block"><span class="text-xs text-slate-500">Скорость съёма (MRR), см³/мин</span>
+                <input id="cnc-rgMrr" type="number" min="0.1" step="0.5" class="rg-in mt-1 w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm"></label>
+              <label class="block"><span class="text-xs text-slate-500">Чистовая, см² поверхности/мин</span>
+                <input id="cnc-rgFinish" type="number" min="0" step="1" class="rg-in mt-1 w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm"></label>
+              <label class="block"><span class="text-xs text-slate-500">Нормо-час станка, ₽/ч</span>
+                <input id="cnc-rgRate" type="number" min="0" step="50" class="rg-in mt-1 w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm"></label>
+              <label class="block"><span class="text-xs text-slate-500">Минимум на деталь, мин</span>
+                <input id="cnc-rgMin" type="number" min="0" step="1" class="rg-in mt-1 w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm"></label>
+              <label class="block" id="cnc-rgAllowWrap"><span id="cnc-rgAllowLabel" class="text-xs text-slate-500">Припуск болванки к каждому габариту, мм</span>
+                <input id="cnc-rgAllow" type="number" min="0" step="0.5" class="rg-in mt-1 w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm"></label>
+              <label class="block" id="cnc-rgAllowLenWrap"><span class="text-xs text-slate-500">Припуск к длине прутка (зажим), мм</span>
+                <input id="cnc-rgAllowLen" type="number" min="0" step="1" class="rg-in mt-1 w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm"></label>
+              <label class="block"><span class="text-xs text-slate-500">Наценка на материал, ×</span>
+                <input id="cnc-rgMarkup" type="number" min="0" step="0.05" class="rg-in mt-1 w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm"></label>
+              <label class="block"><span class="text-xs text-slate-500">Наладка за установ, ₽</span>
+                <input id="cnc-rgSetupPrice" type="number" min="0" step="50" class="rg-in mt-1 w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm"></label>
+            </div>
+            <details class="text-sm">
+              <summary class="cursor-pointer text-sm text-slate-600">Надбавки ко времени</summary>
+              <div class="grid grid-cols-2 gap-3 mt-2">
+                <label class="block"><span class="text-xs text-slate-500">Установ (переворот), мин</span>
+                  <input id="cnc-rgSetupMin" type="number" min="0" step="1" class="rg-in mt-1 w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm"></label>
+                <label class="block"><span class="text-xs text-slate-500">Резьба / отверстие, мин</span>
+                  <input id="cnc-rgHoleMin" type="number" min="0" step="0.5" class="rg-in mt-1 w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm"></label>
+                <label class="block"><span class="text-xs text-slate-500">Высокая точность, × время</span>
+                  <input id="cnc-rgPrecK" type="number" min="1" step="0.1" class="rg-in mt-1 w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm"></label>
+                <label class="block"><span class="text-xs text-slate-500">3D-поверхность, × чистовое</span>
+                  <input id="cnc-rgCplxK" type="number" min="1" step="0.1" class="rg-in mt-1 w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm"></label>
+              </div>
+            </details>
+            <div id="cnc-rgStockBox" class="space-y-2">
+              <label class="flex items-center gap-2 text-sm text-slate-600"><input id="cnc-rgStockOn" type="checkbox" class="rounded"> Своя болванка (из какой плиты режем)</label>
+              <div id="cnc-rgStockFields" class="hidden grid grid-cols-3 gap-2">
+                <input id="cnc-rgSX" type="number" min="0" step="1" placeholder="X, мм" aria-label="Болванка X, мм" class="rg-in w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm">
+                <input id="cnc-rgSY" type="number" min="0" step="1" placeholder="Y, мм" aria-label="Болванка Y, мм" class="rg-in w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm">
+                <input id="cnc-rgSZ" type="number" min="0" step="1" placeholder="Z, мм" aria-label="Болванка Z, мм" class="rg-in w-full rounded-lg border-slate-300 border px-2 py-1.5 text-sm">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Превью и результаты -->
+        <div class="xl:col-span-2 space-y-5">
+          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <div id="cnc-viewer" class="relative w-full h-72 bg-gradient-to-b from-slate-100 to-slate-200">
+              <div id="cnc-viewerHint" class="absolute inset-0 flex items-center justify-center text-slate-400 text-sm">Здесь появится 3D-превью детали</div>
+            </div>
+            <div id="cnc-manualBox" class="border-t border-slate-200 px-5 py-4">
+              <h3 class="text-sm font-semibold mb-2">Ручные надбавки: то, чего не видно по модели</h3>
+              <div class="grid sm:grid-cols-3 gap-3 items-start">
+                <label class="block"><span class="text-sm text-slate-500">Резьб / отверстий, шт</span>
+                  <input id="cnc-holes" type="number" min="0" step="1" value="0" class="mt-1 w-full rounded-lg border-slate-300 border px-3 py-2">
+                  <span class="text-xs text-slate-500">каждое +<span id="cnc-holeMinTxt">2</span> мин</span></label>
+                <label class="flex items-start gap-2 text-sm text-slate-700 sm:pt-6"><input id="cnc-precise" type="checkbox" class="mt-0.5 rounded">
+                  <span>Высокая точность (допуск до 0,01 мм)<span class="block text-xs text-slate-500">общее время × <span id="cnc-precKTxt">1,5</span></span></span></label>
+                <label class="flex items-start gap-2 text-sm text-slate-700 sm:pt-6"><input id="cnc-complex3d" type="checkbox" class="mt-0.5 rounded">
+                  <span>Сложная 3D-поверхность (пресс-формы)<span class="block text-xs text-slate-500">чистовое время × <span id="cnc-cplxKTxt">2</span></span></span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="flex items-baseline justify-between gap-4 flex-wrap">
+              <h3 class="font-semibold">Результат расчёта</h3>
+              <span id="cnc-resFile" class="text-sm text-slate-500 truncate">файл не загружен</span>
+            </div>
+            <div id="cnc-warnings" class="mt-3 space-y-2"></div>
+            <div id="cnc-mrrBox" class="hidden mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm tabular">
+              <div class="font-medium mb-2">Как посчитано время: по объёму стружки (MRR)</div>
+              <div class="mrr-bar mb-1"><span id="cnc-mrrPart"></span><span id="cnc-mrrChip"></span></div>
+              <div class="flex justify-between text-xs text-slate-500 mb-3"><span id="cnc-mrrPartTxt"></span><span id="cnc-mrrChipTxt"></span></div>
+              <ol id="cnc-mrrSteps" class="space-y-1.5"></ol>
+            </div>
+            <dl class="mt-4 grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm tabular">
+              <div class="flex justify-between border-b border-slate-100 pb-2"><dt class="text-slate-500">Габариты детали (X×Y×Z)</dt><dd id="cnc-resPart">—</dd></div>
+              <div class="flex justify-between border-b border-slate-100 pb-2"><dt class="text-slate-500">Заготовка</dt><dd id="cnc-resStock">—</dd></div>
+              <div class="flex justify-between border-b border-slate-100 pb-2"><dt class="text-slate-500">Объём детали</dt><dd id="cnc-resVol">—</dd></div>
+              <div class="flex justify-between border-b border-slate-100 pb-2"><dt class="text-slate-500">Объём заготовки / масса</dt><dd id="cnc-resStockVol">—</dd></div>
+              <div class="flex justify-between border-b border-slate-100 pb-2"><dt class="text-slate-500">Удаляемый материал (стружка)</dt><dd id="cnc-resRemoved">—</dd></div>
+              <div class="flex justify-between border-b border-slate-100 pb-2"><dt class="text-slate-500">Площадь поверхности</dt><dd id="cnc-resArea">—</dd></div>
+              <div class="flex justify-between border-b border-slate-100 pb-2"><dt class="text-slate-500">Расчётное машинное время</dt><dd id="cnc-resTime">—</dd></div>
+              <div class="flex justify-between border-b border-slate-100 pb-2"><dt class="text-slate-500">Стоимость материала</dt><dd id="cnc-resMat">—</dd></div>
+              <div class="flex justify-between border-b border-slate-100 pb-2"><dt class="text-slate-500">Стоимость работы</dt><dd id="cnc-resWork">—</dd></div>
+            </dl>
+            <div class="mt-5 flex items-center justify-between rounded-xl bg-slate-900 text-white px-5 py-4">
+              <span>Итоговая стоимость</span>
+              <span id="cnc-resTotal" class="text-2xl font-semibold tabular">—</span>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Оценка по объёму снимаемого материала, точность ≈ 80–90%. Глубокие отверстия, резьбы, тонкие пазы и малые радиусы увеличивают время сильнее, чем объём стружки. Добавьте их в ручные надбавки или поправьте цену в таблице.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Таблица расчётов ЧПУ -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <div class="flex items-center justify-between gap-4 flex-wrap mb-4">
+          <h3 class="font-semibold">Таблица расчётов</h3>
+          <div class="flex gap-2">
+            <button id="cnc-clearBtn" type="button" class="btn btn-ghost">Очистить</button>
+            <button id="cnc-csvBtn" type="button" class="btn btn-secondary">Экспорт в CSV</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm tabular">
+            <thead>
+              <tr class="text-left text-xs text-slate-500 border-b border-slate-200">
+                <th class="py-2 pr-2 font-medium">Имя файла</th>
+                <th class="py-2 pr-2 font-medium">Габариты, мм</th>
+                <th class="py-2 pr-2 font-medium">Материал</th>
+                <th class="py-2 pr-2 font-medium">Обработка</th>
+                <th class="py-2 pr-2 w-20 text-right font-medium">Установы</th>
+                <th class="py-2 pr-2 w-24 text-right font-medium">Время</th>
+                <th class="py-2 pr-2 w-32 text-right font-medium">Цена материала, ₽</th>
+                <th class="py-2 pr-2 w-32 text-right font-medium">Цена работы, ₽</th>
+                <th class="py-2 pr-2 w-32 text-right font-medium">Итого, ₽</th>
+                <th class="py-2 w-8"><span class="sr-only">Удалить</span></th>
+              </tr>
+            </thead>
+            <tbody id="cnc-tbody">
+              <tr id="cnc-emptyRow"><td colspan="10" class="py-6 text-center text-slate-400">Загрузите 3D-модели: каждая станет строкой таблицы</td></tr>
+            </tbody>
+            <tfoot>
+              <tr class="font-semibold border-t-2 border-slate-200">
+                <td colspan="6" class="py-2">Всего</td>
+                <td id="cnc-sumMat" class="py-2 pr-3 text-right">0</td>
+                <td id="cnc-sumWork" class="py-2 pr-3 text-right">0</td>
+                <td id="cnc-sumTotal" class="py-2 pr-3 text-right">0</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <p class="mt-3 text-xs text-slate-500">Установы, цену материала и цену работы можно править прямо в таблице. Цены, введённые вручную, подсвечены жёлтым. Нажмите на имя файла, чтобы выбрать деталь.</p>
+      </div>
+    </section>
+
+    <!-- Таблица результатов (общая смета) -->
+    <section id="estimateSection" class="bg-white rounded-2xl border border-slate-200">
+      <div class="est-head">
+        <div class="est-title">
+          <label for="calcNameInput" class="est-label">Расчёт</label>
+          <input id="calcNameInput" type="text" maxlength="120" placeholder="Без названия"
+            class="calc-name-input est-name"
+            title="Под этим названием расчёт сохранится в «Мои расчёты»">
+          <span id="calcStatusBox"></span>
+          <span id="saveStatus" class="text-xs text-emerald-600"></span>
+        </div>
+        <div class="est-client">
+          <label for="estimateClient" class="est-label">Клиент</label>
+          <select id="estimateClient" class="field-sm max-w-[16rem]"></select>
+          <label id="estimateDiscountWrap" class="hidden flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1">
+            скидка <input id="estimateDiscount" type="number" min="0" max="100" step="any" class="w-14 rounded border border-slate-300 px-1 py-0.5 text-right bg-white"> %
+          </label>
+          <button id="estimateClientEdit" type="button" class="hdr-icon-btn" title="Открыть базу клиентов" aria-label="Открыть базу клиентов">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="est-toolbar">
+        <div class="est-tools">
+          <label class="vat-toggle">
+            <input id="vatCheckbox" type="checkbox" class="w-4 h-4 accent-orange-500">
+            <span>НДС</span>
+            <input id="vatRateInput" type="number" min="0" step="1"
+              class="w-12 rounded border border-slate-300 px-1 py-0.5 text-right text-sm" title="Ставка НДС, %">
+            <span>%</span>
+          </label>
+          <button id="replaceBtn" type="button" class="btn btn-ghost" title="Заменить металл и толщину сразу во всём расчёте и увидеть новую цену">Заменить материал</button>
+          <button id="rpUndoBtn" type="button" class="hidden btn btn-ghost">Отменить замену</button>
+          <button id="clearBtn" type="button" class="btn btn-ghost" title="Начать новый расчёт: текущий уже сохранён в «Мои расчёты»">Новый расчёт</button>
+        </div>
+        <div class="est-exports" role="group" aria-label="Выгрузка">
+          <button id="exportBtn" type="button" class="btn btn-secondary" title="Подробная смета для своих: себестоимость, резка, металл">Excel для себя</button>
+          <button id="clientExportBtn" type="button" class="btn btn-secondary" title="Смета в Excel для клиента, без себестоимости">Excel клиенту</button>
+          <button id="routeBtn" type="button" class="btn btn-secondary"
+            title="PDF для цеха: операции, эскизы, количество, подписи исполнителя и ОТК, QR-код. Без цен">Маршрутный лист</button>
+          <button id="kpPdfBtn" type="button" class="btn btn-primary"
+            title="Коммерческое предложение в PDF с реквизитами, печатью и подписью">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
+            КП в PDF
+          </button>
+        </div>
+      </div>
+      <div class="view-switch" role="tablist" aria-label="Вид сметы">
+        <button type="button" data-view="short" class="view-btn">Кратко</button>
+        <button type="button" data-view="internal" class="view-btn">Для производства</button>
+        <button type="button" data-view="client" class="view-btn">Для клиента (КП)</button>
+      </div>
+
+      <div id="shortView" class="hidden">
+        <div class="overflow-x-auto">
+          <table class="calc-table w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-left">
+              <tr>
+                <th>№</th>
+                <th>Название</th>
+                <th>Металл</th>
+                <th class="text-right">Толщина, мм</th>
+                <th class="text-right">Кол-во</th>
+                <th class="text-right">Цена за 1 шт без НДС</th>
+                <th class="text-right" id="shortVatHead">Цена за 1 шт с НДС</th>
+                <th class="text-right">Сумма (цена × кол-во)</th>
+                <th class="w-8"></th>
+              </tr>
+            </thead>
+            <tbody id="shortBody"></tbody>
+            <tfoot id="shortFoot"></tfoot>
+          </table>
+        </div>
+        <div id="shortTrash" class="hidden px-5 pt-3"></div>
+        <p class="px-5 py-2 text-xs text-slate-400">Толщину и количество меняйте прямо здесь, в жёлтых полях. ✕ в конце строки убирает позицию из сметы, но её можно вернуть из корзины расчёта в «Мои расчёты». Цены вручную правятся в виде «Для производства».</p>
+      </div>
+
+      <div id="internalView">
+
+      <div class="overflow-x-auto">
+        <table class="calc-table w-full text-sm">
+          <thead class="bg-slate-50 text-slate-500 text-left">
+            <tr>
+              <th>№</th>
+              <th>Изделие</th>
+              <th class="text-right">Кол-во</th>
+              <th class="text-right">Габариты, мм</th>
+              <th class="text-right" title="Длина реза / шва / гибов, м; вес, кг; площадь, м²">Длина / вес / площадь</th>
+              <th class="text-right">Цена 1 м / кг / м²</th>
+              <th class="text-right">Цена врезки / гиба</th>
+              <th class="text-right">Цена работы</th>
+              <th class="text-right">Цена за металл</th>
+              <th class="text-right">Цена за 1 шт</th>
+              <th class="text-right">Цена за комплект</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+          <tfoot>
+            <tr id="grossRow" class="bg-slate-50 hidden">
+              <td colspan="10" class="text-right">Сумма позиций:</td>
+              <td id="grossTotal" class="text-right whitespace-nowrap"></td>
+              <td></td>
+            </tr>
+            <tr id="discountRow" class="bg-emerald-50 text-emerald-800 hidden">
+              <td colspan="10" class="text-right" id="discountLabel">Скидка:</td>
+              <td id="discountTotal" class="text-right whitespace-nowrap"></td>
+              <td></td>
+            </tr>
+            <tr class="bg-slate-50 font-semibold">
+              <td colspan="10" class="text-right" id="grandTotalLabel">Итого (без НДС):</td>
+              <td id="grandTotal" class="text-right whitespace-nowrap">0,00 ₽</td>
+              <td></td>
+            </tr>
+            <tr id="vatRow" class="bg-slate-50 hidden">
+              <td colspan="10" class="text-right" id="vatLabel">НДС 22%:</td>
+              <td id="vatTotal" class="text-right whitespace-nowrap">0,00 ₽</td>
+              <td></td>
+            </tr>
+            <tr id="vatTotalRow" class="bg-orange-50 font-bold hidden">
+              <td colspan="10" class="text-right">Итого с НДС:</td>
+              <td id="grandWithVat" class="text-right whitespace-nowrap">0,00 ₽</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+        <p id="emptyState" class="text-center text-slate-400 py-10">Пока пусто. Загрузите DXF-файл.</p>
+      </div>
+      <p class="text-xs text-slate-400 px-5 py-3 border-t border-slate-100">
+        Жёлтые поля можно менять. Цена за 1 шт = резка + металл, цена за комплект = цена за 1 шт × кол-во.
+        Материал и толщина выбираются для каждого файла в его строке.
+      </p>
+      </div>
+
+      <!-- Клиентская таблица (КП) -->
+      <div id="clientView" class="hidden">
+        <div class="overflow-x-auto">
+          <table class="calc-table w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-left">
+              <tr>
+                <th>№</th>
+                <th>Наименование детали / узла</th>
+                <th>Описание</th>
+                <th class="text-right">Кол-во</th>
+                <th class="text-right">Цена за ед. (без НДС)</th>
+                <th class="text-right">Сумма (без НДС)</th>
+                <th id="clientVatHead" class="text-right client-vat-col">Сумма (с НДС)</th>
+              </tr>
+            </thead>
+            <tbody id="clientBody"></tbody>
+            <tfoot>
+              <tr id="clientGrossRow" class="bg-slate-50 hidden"><td colspan="5" class="text-right">Сумма:</td><td id="clientGross" class="text-right whitespace-nowrap"></td><td class="client-vat-col"></td></tr>
+              <tr id="clientDiscountRow" class="bg-emerald-50 text-emerald-800 hidden"><td colspan="5" class="text-right" id="clientDiscountLabel">Скидка:</td><td id="clientDiscount" class="text-right whitespace-nowrap"></td><td class="client-vat-col"></td></tr>
+              <tr class="bg-slate-50 font-semibold"><td colspan="5" class="text-right">Итого без НДС:</td><td id="clientSubtotal" class="text-right whitespace-nowrap"></td><td class="client-vat-col"></td></tr>
+              <tr id="clientVatRow" class="bg-slate-50"><td colspan="5" class="text-right" id="clientVatRowLabel">В том числе НДС:</td><td id="clientVatAmount" class="text-right whitespace-nowrap"></td><td class="client-vat-col"></td></tr>
+              <tr class="bg-sky-50 font-bold text-base"><td colspan="5" class="text-right" id="clientTotalLabel">ИТОГО К ОПЛАТЕ:</td><td id="clientTotal" class="text-right whitespace-nowrap"></td><td class="client-vat-col"></td></tr>
+            </tfoot>
+          </table>
+          <p id="clientEmpty" class="text-center text-slate-400 py-10">Пока пусто. Добавьте позиции в расчёт.</p>
+        </div>
+        <p class="text-xs text-slate-400 px-5 py-3 border-t border-slate-100">
+          Так смету увидит клиент: без длин реза, коэффициентов и разбивки узлов по станкам. Цены меняются во внутренней таблице.
+        </p>
+      </div>
+    </section>
+
+    <!-- Рентабельность заказа -->
+    <section id="profitSection" class="hidden bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="font-semibold">Рентабельность заказа <span class="text-xs font-normal text-slate-400">(клиент не видит)</span></h2>
+          <p class="text-sm text-slate-500">Из чего состоит сумма заказа и сколько остаётся компании.</p>
+        </div>
+        <div id="profitVerdict" class="profit-verdict"></div>
+      </div>
+      <div class="grid gap-6 lg:grid-cols-[18rem_1fr_1.2fr] items-start">
+        <div class="relative h-64">
+          <canvas id="profitChart"></canvas>
+          <div id="profitCenter" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"></div>
+          <div id="profitChartFallback" class="hidden absolute bottom-0 left-0 right-0 h-4 flex rounded overflow-hidden"></div>
+        </div>
+        <div id="profitLegend" class="space-y-1.5"></div>
+        <div class="overflow-x-auto">
+          <table class="calc-table text-sm w-full">
+            <thead class="bg-slate-50 text-slate-500 text-left text-xs"><tr><th>Участок</th><th class="text-right">Выручка</th><th class="text-right">Себестоимость</th><th class="text-right">Маржа</th></tr></thead>
+            <tbody id="profitByOp"></tbody>
+          </table>
+        </div>
+      </div>
+      <details class="rounded-xl border border-slate-200">
+        <summary class="cursor-pointer px-4 py-2 text-sm font-medium text-slate-600">Настройки себестоимости (доли в % от цены работы)</summary>
+        <div class="p-4 space-y-3">
+          <div class="flex flex-wrap items-center gap-4 text-sm">
+            <label class="flex items-center gap-2">Металл считать
+              <select id="costMetalMode" class="rounded border border-slate-300 px-2 py-1 bg-white">
+                <option value="partial">по раскладке, остаток последнего листа на склад</option>
+                <option value="sheets">по раскладке, целыми листами</option>
+                <option value="area">по площади деталей (без обрезков)</option>
+              </select></label>
+            <label class="flex items-center gap-2">Наценка на покупные метизы <input id="costHwMarkup" type="number" min="0" step="any" class="w-16 rounded border border-slate-300 px-2 py-1 text-right"> %</label>
+            <button id="costResetBtn" type="button" class="rounded-lg border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">Сбросить</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="calc-table text-sm">
+              <thead class="bg-slate-50 text-slate-500 text-xs"><tr><th class="text-left">Операция</th><th class="text-right">Материалы %</th><th class="text-right">Станки %</th><th class="text-right">Зарплата %</th><th class="text-right">Подряд %</th></tr></thead>
+              <tbody id="costSettingsBody"></tbody>
+            </table>
+          </div>
+          <p class="text-xs text-slate-400">Пример: лазер «станки 30%» значит, что из каждых 100 ₽ за резку 30 ₽ уходит на амортизацию и электричество. Металл в себестоимость идёт по цене листа без вашего коэффициента; металл заказчика считается как 0. Настройки общие для всех сотрудников.</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- Итоговая сводка -->
+    <section id="summarySection" class="hidden bg-white rounded-2xl border border-slate-200 p-5">
+      <h2 class="font-semibold mb-3">Итого по заказу</h2>
+      <div class="grid gap-6 lg:grid-cols-3">
+        <div id="summaryList" class="lg:col-span-2 text-sm space-y-1"></div>
+        <div id="summaryTotals" class="text-sm space-y-1 bg-slate-50 rounded-xl p-4 self-start"></div>
+      </div>
+    </section>
+
+    <!-- Предпросмотр -->
+    <section id="previewSection" class="hidden bg-white rounded-2xl border border-slate-200 p-5">
+      <div class="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+        <h2 class="font-semibold">Предпросмотр: <span id="previewName" class="font-normal"></span></h2>
+        <p id="previewStats" class="text-sm text-slate-500"></p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 mb-2 text-sm">
+        <button id="pvMeasureBtn" type="button" class="pv-btn">Рулетка</button>
+        <button id="pvFitBtn" type="button" class="pv-btn" title="Показать чертёж целиком">Вписать</button>
+        <span class="text-xs text-slate-400">Масштаб чертежа:</span>
+        <button type="button" data-pv-scale="10" class="pv-btn pv-btn-sm">×10</button>
+        <button type="button" data-pv-scale="0.1" class="pv-btn pv-btn-sm">×0,1</button>
+        <button type="button" data-pv-scale="25.4" class="pv-btn pv-btn-sm" title="Чертёж в дюймах → в мм">дюймы → мм</button>
+        <label class="flex items-center gap-1 text-xs text-slate-500"><input id="pvIssuesToggle" type="checkbox" checked class="accent-rose-500"> показывать ошибки</label>
+        <span id="pvMeasureOut" class="text-sky-700 font-medium tabular-nums"></span>
+      </div>
+      <div id="pvScaleBox" class="hidden flex flex-wrap items-center gap-2 mb-2 text-sm rounded-lg bg-sky-50 border border-sky-200 px-3 py-2">
+        <span class="text-slate-600">Масштаб сбит? Реальный размер измеренного отрезка:</span>
+        <input id="pvScaleReal" type="number" min="0" step="any" class="w-28 rounded border border-slate-300 px-2 py-1" placeholder="мм">
+        <span class="text-slate-500">мм</span>
+        <button id="pvScaleApply" type="button" class="rounded-lg bg-sky-600 text-white px-3 py-1 hover:bg-sky-700">Пересчитать чертёж</button>
+      </div>
+      <div class="grid gap-3 lg:grid-cols-[1fr_20rem]">
+        <canvas id="previewCanvas" class="w-full h-[420px] rounded-lg bg-slate-900 select-none"></canvas>
+        <div class="space-y-1.5">
+          <div class="text-sm font-semibold">Проверка чертежа</div>
+          <div id="inspectBox" class="space-y-1.5"></div>
+          <div class="text-[11px] text-slate-400 leading-snug pt-1">На чертеже: <span class="text-rose-500 font-medium">красный</span>: незамкнутый контур (кружки на концах), <span class="text-purple-500 font-medium">фиолетовый пунктир</span>: удалённые двойные линии, <span class="text-sky-500 font-medium">голубой пунктир</span>: линии гиба и разметка, в цене не учитываются.</div>
+        </div>
+      </div>
+      <p class="text-xs text-slate-400 mt-2">Колесо мыши: масштаб, перетаскивание: сдвиг, двойной клик: вписать. Красные точки: врезки, номера: детали из таблицы. Рулетка цепляется к углам и точкам контура (зелёный квадрат), Esc сбрасывает замер.</p>
+    </section>
+    <!-- Раскладка на листы -->
+    <section id="nestSection" class="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="font-semibold">Раскрой листа</h2>
+          <p class="text-sm text-slate-500">Все детали расчёта раскладываются на стандартный лист: картинка раскроя, КИМ (коэффициент использования металла) и DXF всего листа для станка.</p>
+        </div>
+        <button id="nestRunBtn" type="button" class="rounded-lg bg-orange-500 text-white px-5 py-2 text-sm font-medium hover:bg-orange-600">Сделать раскрой</button>
+      </div>
+      <div class="grid gap-3 lg:grid-cols-[1fr_1.4fr]">
+        <div id="nestDrop" class="drop-zone rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center cursor-pointer space-y-2">
+          <p class="font-medium">Перетащите DXF-файлы сюда</p>
+          <p class="text-xs text-slate-500">Можно несколько сразу, детали разложатся на листы.</p>
+          <div class="flex flex-wrap justify-center items-center gap-2 text-sm" onclick="event.stopPropagation()">
+            <select id="nestMaterial" class="rounded border border-slate-300 px-2 py-1 bg-white max-w-[14rem]"></select>
+            <select id="nestThickness" class="rounded border border-slate-300 px-2 py-1 bg-white"></select>
+            <span class="text-slate-500">мм</span>
+          </div>
+          <button id="nestPickBtn" type="button" class="rounded-lg bg-orange-500 text-white px-5 py-2 text-sm font-medium hover:bg-orange-600">Выбрать DXF</button>
+          <input id="nestFileInput" type="file" accept=".dxf" multiple class="hidden">
+          <p id="nestLoading" class="hidden text-sm text-orange-600">Обработка…</p>
+        </div>
+        <div class="space-y-1">
+          <div class="text-sm font-medium">Детали в раскрое <span class="text-xs font-normal text-slate-400">количество можно менять, оно же уходит в смету</span></div>
+          <div id="nestParts" class="max-h-56 overflow-y-auto rounded-lg border border-slate-200"></div>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm rounded-xl bg-slate-50 border border-slate-200 px-3 py-2">
+        <label class="flex items-center gap-1">Лист
+          <select id="nestSheet" class="rounded border border-slate-300 px-2 py-1 bg-white">
+            <option value="1500x3000">1500 × 3000</option>
+            <option value="1250x2500">1250 × 2500</option>
+            <option value="1000x2000">1000 × 2000</option>
+            <option value="1500x6000">1500 × 6000</option>
+            <option value="2000x6000">2000 × 6000</option>
+            <option value="file">как в строке файла</option>
+            <option value="custom">свой размер…</option>
+          </select></label>
+        <span id="nestCustomWrap" class="hidden flex items-center gap-1"><input id="nestCustomW" type="number" min="1" step="any" class="w-20 rounded border border-slate-300 px-2 py-1 text-right"> × <input id="nestCustomH" type="number" min="1" step="any" class="w-20 rounded border border-slate-300 px-2 py-1 text-right"> мм</span>
+        <label class="flex items-center gap-1">Зазор <input id="nestGap" type="number" min="0" step="any" class="w-16 rounded border border-slate-300 px-2 py-1 text-right"> мм</label>
+        <label class="flex items-center gap-1">Край <input id="nestMargin" type="number" min="0" step="any" class="w-16 rounded border border-slate-300 px-2 py-1 text-right"> мм</label>
+        <label class="flex items-center gap-1"><input id="nestRotate" type="checkbox" class="accent-orange-500"> поворот 90°</label>
+        <label class="flex items-center gap-1" title="Косые детали поворачиваются так, чтобы их габарит был минимальным"><input id="nestAngle" type="checkbox" class="accent-orange-500"> лучший угол</label>
+        <label class="flex items-center gap-1" title="Мелкие детали укладываются в крупные отверстия других деталей"><input id="nestHoles" type="checkbox" class="accent-orange-500"> деталь в детали</label>
+      </div>
+      <div id="nestResults" class="space-y-3"></div>
+      <div id="nestView" class="hidden space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div id="nestViewTitle" class="font-medium"></div>
+            <div id="nestViewInfo" class="text-sm text-slate-600"></div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="nestPrev" type="button" class="pv-btn disabled:opacity-40">← лист</button>
+            <button id="nestNext" type="button" class="pv-btn disabled:opacity-40">лист →</button>
+            <button id="nestSheetDxf" type="button" class="rounded-lg bg-slate-800 text-white px-3 py-1.5 text-sm hover:bg-slate-900">DXF этого листа</button>
+          </div>
+        </div>
+        <div id="nestCanvasWrap" class="w-full overflow-x-auto rounded-lg bg-slate-100 p-2"><canvas id="nestCanvas"></canvas></div>
+      </div>
+      <p class="text-xs text-slate-400">КИМ = площадь деталей (без отверстий) ÷ площадь листов. Детали укладываются по габариту с поворотом, косые предварительно поворачиваются под лучший угол, мелкие ложатся в отверстия крупных. Зелёная зона: деловой остаток последнего листа. В DXF контуры на слое CUT, рамка листа на слое SHEET (не резать).</p>
+    </section>
+
+    <!-- Мой прайс труб (вкладки «Труборез» и «Раскрой трубы») -->
+    <section id="tubePriceSection" class="hidden bg-white rounded-2xl border border-slate-200 p-5">
+      <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+        <div>
+          <h2 class="font-semibold">Мой прайс труб</h2>
+          <p class="text-sm text-slate-500">
+            Цена трубы за метр, резки за метр и врезки по каждому размеру. Свои цены общие для всех сотрудников
+            и подставляются в «Труборез» и «Раскрой трубы». Изменённые цены подсвечены зелёным.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <select id="tubeCatKind" class="rounded-lg border border-slate-300 px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+          <button id="tubeCatAdd" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50">＋ Своя труба</button>
+          <button id="tubeCatReset" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50">Сбросить к базовым</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="calc-table text-sm w-full max-w-4xl">
+          <thead class="bg-slate-50 text-slate-500 text-left">
+            <tr>
+              <th>Размер, мм</th>
+              <th class="text-right">Вес 1 м, кг</th>
+              <th class="text-right">Цена трубы за 1 м, ₽</th>
+              <th class="text-right">Цена 1 м реза, ₽</th>
+              <th class="text-right">Цена врезки, ₽</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tubeCatBody"></tbody>
+        </table>
+      </div>
+      <p class="text-xs text-slate-400 mt-3">
+        Базовая цена трубы = вес 1 м × цена металла за кг (из прайса лазера), резка и врезка из прайса лазера по толщине стенки.
+        Размер «40×20×2» = профиль 40×20, стенка 2 мм; «57×3» = круглая Ø57, стенка 3 мм.
+      </p>
+    </section>
+
+    <!-- Мой прайс-лист (лазер) -->
+    <section id="laserPriceSection" class="bg-white rounded-2xl border border-slate-200 p-5">
+      <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+        <div>
+          <h2 class="font-semibold">Мой прайс-лист</h2>
+          <p class="text-sm text-slate-500">
+            Свои цены подставляются в каждый новый расчёт.
+            Изменённые цены подсвечены зелёным.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <select id="priceMaterialSelect"
+            class="rounded-lg border border-slate-300 px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="calc-table text-sm w-full max-w-4xl">
+          <thead class="bg-slate-50 text-slate-500 text-left">
+            <tr>
+              <th>Толщина</th>
+              <th class="text-right">Цена 1 м реза, ₽</th>
+              <th class="text-right">Цена врезки, ₽</th>
+              <th class="text-right" colspan="2">Размер листа, мм</th>
+              <th class="text-right">Цена листа, ₽</th>
+            </tr>
+          </thead>
+          <tbody id="priceTableBody"></tbody>
+        </table>
+      </div>
+      <p class="text-xs text-slate-400 mt-3">
+        Новые цены применяются к новым файлам. Чтобы обновить уже загруженные файлы, нажмите «Применить ко всем файлам» во вкладке «Лазер» или заново выберите материал в строке файла.
+      </p>
+    </section>
+
+  </main>
+  </div><!-- /.app-main -->
+  </div><!-- /.app-shell -->
+
+  <!-- Уведомления -->
+  <div id="toasts" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
+
+  <!-- Библиотеки — локальные копии (vendor/), без зарубежных CDN -->
+  <script src="vendor/tailwind.js"></script>
+  <script>
+    /* Палитра «сталь»: нейтральные серые вместо сине-серых slate — меняется сразу во всём интерфейсе,
+       в том числе в разметке, которую строит app.js. Шрифт — Onest (fonts/, своя копия). */
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Onest', 'Segoe UI', 'system-ui', 'sans-serif'] },
+          colors: {
+            slate: {
+              50: '#f5f6f7', 100: '#eceef0', 200: '#dde1e5', 300: '#c6ccd2', 400: '#949ca5',
+              500: '#656e78', 600: '#4c555f', 700: '#38404a', 800: '#252b32', 900: '#171b20', 950: '#0e1114',
+            },
+            // главные кнопки: белый текст на оранжевом должен читаться (контраст 4.7:1)
+            orange: { 500: '#c84a0c', 600: '#ad3f09' },
+          },
+        },
+      },
+    };
+  </script>
+  <script src="vendor/dxf-parser.js"></script>
+  <script src="vendor/supabase.js"></script>
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script>window.__MR_CORE__ = "core/core.73663ee1cb.js";</script>
+  <script src="./assets/boot.0b34599ba0.js"></script>
+</body>
+</html>
